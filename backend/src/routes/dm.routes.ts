@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express';
 import dmService from '../services/dm.service';
-import { authenticate } from '../middleware/auth.middleware';
+import { authenticate } from '../middleware/auth';
 
 const router = Router();
 
@@ -10,7 +10,7 @@ const router = Router();
  */
 router.get('/channels', authenticate, async (req: Request, res: Response) => {
   try {
-    const channels = await dmService.getUserChannels(req.userId!);
+    const channels = await dmService.getUserChannels(req.user!.userId);
 
     res.json({
       success: true,
@@ -38,7 +38,7 @@ router.get('/:channelId/messages', authenticate, async (req: Request, res: Respo
 
     const messages = await dmService.getChannelMessages(
       channelId,
-      req.userId!,
+      req.user!.userId,
       limit ? parseInt(limit as string) : 50,
       offset ? parseInt(offset as string) : 0
     );
@@ -82,7 +82,7 @@ router.post('/:channelId/messages', authenticate, async (req: Request, res: Resp
       });
     }
 
-    const message = await dmService.sendMessage(channelId, req.userId!, content);
+    const message = await dmService.sendMessage(channelId, req.user!.userId, content);
 
     res.status(201).json({
       success: true,
@@ -121,7 +121,7 @@ router.delete('/messages/:messageId', authenticate, async (req: Request, res: Re
   try {
     const { messageId } = req.params;
 
-    await dmService.deleteMessage(messageId, req.userId!);
+    await dmService.deleteMessage(messageId, req.user!.userId);
 
     res.json({
       success: true,

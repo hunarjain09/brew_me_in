@@ -1,7 +1,10 @@
+import http from 'http';
 import app from './app';
 import { config } from './config';
 import { db } from './db/connection';
 import { connectRedis } from './db/redis';
+import notificationService from './services/notification.service';
+import { startPokeExpirationJob } from './jobs/poke-expiration.job';
 
 async function startServer() {
   try {
@@ -15,8 +18,19 @@ async function startServer() {
     await connectRedis();
     console.log('Redis connected successfully');
 
-    // Start Express server
-    app.listen(config.port, () => {
+    // Create HTTP server with Socket.IO support
+    const server = http.createServer(app);
+
+    // Initialize Component 4: Notification Service (Socket.IO)
+    notificationService.initialize(server);
+    console.log('Socket.IO notification service initialized');
+
+    // Start Component 4: Poke expiration background job
+    startPokeExpirationJob();
+    console.log('Poke expiration job started');
+
+    // Start server
+    server.listen(config.port, () => {
       console.log(`
 🚀 brew_me_in Backend Server Started
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -34,6 +48,12 @@ API Endpoints:
   PUT    /api/users/me/poke-enabled
   POST   /api/badges/record-tip
   GET    /api/badges/status
+  GET    /api/matching/discover
+  POST   /api/pokes/send
+  POST   /api/pokes/respond
+  GET    /api/pokes/pending
+  GET    /api/dm/channels
+  POST   /api/dm/:channelId/messages
   GET    /api/health
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
       `);

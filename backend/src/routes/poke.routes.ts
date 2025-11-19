@@ -1,7 +1,7 @@
 import { Router, Request, Response } from 'express';
 import pokeService from '../services/poke.service';
-import { authenticate } from '../middleware/auth.middleware';
-import { pokeRateLimit } from '../middleware/rateLimit.middleware';
+import { authenticate } from '../middleware/auth';
+import { pokeRateLimit } from '../middleware/pokeRateLimit';
 
 const router = Router();
 
@@ -22,7 +22,7 @@ router.post('/send', authenticate, pokeRateLimit, async (req: Request, res: Resp
     }
 
     const poke = await pokeService.sendPoke(
-      req.userId!,
+      req.user!.userId,
       toUserId,
       sharedInterest
     );
@@ -79,7 +79,7 @@ router.post('/respond', authenticate, async (req: Request, res: Response) => {
       });
     }
 
-    const result = await pokeService.respondToPoke(pokeId, req.userId!, action);
+    const result = await pokeService.respondToPoke(pokeId, req.user!.userId, action);
 
     res.json({
       success: true,
@@ -128,7 +128,7 @@ router.post('/respond', authenticate, async (req: Request, res: Response) => {
  */
 router.get('/pending', authenticate, async (req: Request, res: Response) => {
   try {
-    const pokes = await pokeService.getPendingPokes(req.userId!);
+    const pokes = await pokeService.getPendingPokes(req.user!.userId);
 
     res.json({
       success: true,
@@ -150,7 +150,7 @@ router.get('/pending', authenticate, async (req: Request, res: Response) => {
  */
 router.get('/sent', authenticate, async (req: Request, res: Response) => {
   try {
-    const pokes = await pokeService.getSentPokes(req.userId!);
+    const pokes = await pokeService.getSentPokes(req.user!.userId);
 
     res.json({
       success: true,

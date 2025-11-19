@@ -1,4 +1,4 @@
-import { query } from '../db/connection';
+import { db } from '../db/connection';
 import { DiscoverUsersQuery, DiscoveredUser } from '../types/matching.types';
 
 export class MatchingService {
@@ -81,7 +81,7 @@ export class MatchingService {
       queryParams = [currentUserId, limit, offset];
     }
 
-    const result = await query(queryText, queryParams);
+    const result = await db.query(queryText, queryParams);
     return result.rows;
   }
 
@@ -89,7 +89,7 @@ export class MatchingService {
    * Get user interests
    */
   async getUserInterests(userId: string): Promise<string[]> {
-    const result = await query(
+    const result = await db.query(
       'SELECT interest FROM user_interests WHERE user_id = $1',
       [userId]
     );
@@ -100,7 +100,7 @@ export class MatchingService {
    * Add interest for a user
    */
   async addUserInterest(userId: string, interest: string): Promise<void> {
-    await query(
+    await db.query(
       'INSERT INTO user_interests (user_id, interest) VALUES ($1, $2) ON CONFLICT DO NOTHING',
       [userId, interest.toLowerCase()]
     );
@@ -110,7 +110,7 @@ export class MatchingService {
    * Remove interest for a user
    */
   async removeUserInterest(userId: string, interest: string): Promise<void> {
-    await query(
+    await db.query(
       'DELETE FROM user_interests WHERE user_id = $1 AND interest = $2',
       [userId, interest.toLowerCase()]
     );
@@ -120,11 +120,11 @@ export class MatchingService {
    * Set all interests for a user (replaces existing)
    */
   async setUserInterests(userId: string, interests: string[]): Promise<void> {
-    const client = await query('BEGIN', []);
+    const client = await db.query('BEGIN', []);
 
     try {
       // Delete existing interests
-      await query('DELETE FROM user_interests WHERE user_id = $1', [userId]);
+      await db.query('DELETE FROM user_interests WHERE user_id = $1', [userId]);
 
       // Insert new interests
       if (interests.length > 0) {
@@ -132,15 +132,15 @@ export class MatchingService {
           .map((_, i) => `($1, $${i + 2})`)
           .join(', ');
         const params = [userId, ...interests.map((i) => i.toLowerCase())];
-        await query(
+        await db.query(
           `INSERT INTO user_interests (user_id, interest) VALUES ${values}`,
           params
         );
       }
 
-      await query('COMMIT', []);
+      await db.query('COMMIT', []);
     } catch (error) {
-      await query('ROLLBACK', []);
+      await db.query('ROLLBACK', []);
       throw error;
     }
   }

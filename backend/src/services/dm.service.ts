@@ -1,4 +1,4 @@
-import { query } from '../db/connection';
+import { db } from '../db/connection';
 import { DirectMessage, DMMessage } from '../types/matching.types';
 
 export class DMService {
@@ -6,7 +6,7 @@ export class DMService {
    * Get all DM channels for a user
    */
   async getUserChannels(userId: string): Promise<DirectMessage[]> {
-    const result = await query(
+    const result = await db.query(
       `SELECT
          dc.id as "channelId",
          dc.user1_id as "user1Id",
@@ -27,7 +27,7 @@ export class DMService {
    * Get a specific DM channel
    */
   async getChannel(channelId: string, userId: string): Promise<DirectMessage | null> {
-    const result = await query(
+    const result = await db.query(
       `SELECT
          dc.id as "channelId",
          dc.user1_id as "user1Id",
@@ -58,7 +58,7 @@ export class DMService {
       throw new Error('Channel not found or access denied');
     }
 
-    const result = await query(
+    const result = await db.query(
       `SELECT
          dm.id,
          dm.channel_id as "channelId",
@@ -98,7 +98,7 @@ export class DMService {
       throw new Error('Message content too long (max 2000 characters)');
     }
 
-    const result = await query(
+    const result = await db.query(
       `INSERT INTO dm_messages (channel_id, sender_id, content)
        VALUES ($1, $2, $3)
        RETURNING id, channel_id as "channelId", sender_id as "senderId",
@@ -124,7 +124,7 @@ export class DMService {
     // Ensure user1_id < user2_id for uniqueness constraint
     const [sortedUser1, sortedUser2] = [user1Id, user2Id].sort();
 
-    const result = await query(
+    const result = await db.query(
       `INSERT INTO dm_channels (user1_id, user2_id, cafe_id)
        VALUES ($1, $2, $3)
        ON CONFLICT (user1_id, user2_id) DO UPDATE
@@ -149,7 +149,7 @@ export class DMService {
    * Delete a message (soft delete by updating content)
    */
   async deleteMessage(messageId: string, userId: string): Promise<void> {
-    const result = await query(
+    const result = await db.query(
       `UPDATE dm_messages
        SET content = '[Message deleted]'
        WHERE id = $1 AND sender_id = $2`,

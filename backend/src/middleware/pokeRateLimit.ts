@@ -1,4 +1,5 @@
-import { Request, Response, NextFunction } from 'express';
+import { Response, NextFunction } from 'express';
+import { AuthRequest } from './auth';
 import pokeService from '../services/poke.service';
 
 const RATE_LIMIT_WINDOW_MS = parseInt(
@@ -10,11 +11,11 @@ const RATE_LIMIT_MAX = parseInt(process.env.POKE_RATE_LIMIT_MAX || '10');
  * Rate limiting middleware for poke sending
  */
 export const pokeRateLimit = async (
-  req: Request,
+  req: AuthRequest,
   res: Response,
   next: NextFunction
 ) => {
-  if (!req.userId) {
+  if (!req.user) {
     return res.status(401).json({
       error: 'Unauthorized',
       message: 'Authentication required',
@@ -23,7 +24,7 @@ export const pokeRateLimit = async (
 
   try {
     const canSend = await pokeService.checkRateLimit(
-      req.userId,
+      req.user.userId,
       RATE_LIMIT_WINDOW_MS,
       RATE_LIMIT_MAX
     );

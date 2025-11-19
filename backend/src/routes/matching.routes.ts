@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express';
 import matchingService from '../services/matching.service';
-import { authenticate } from '../middleware/auth.middleware';
+import { authenticate } from '../middleware/auth';
 
 const router = Router();
 
@@ -24,7 +24,7 @@ router.get('/discover', authenticate, async (req: Request, res: Response) => {
       ? (interests as string).split(',').map((i) => i.trim())
       : undefined;
 
-    const users = await matchingService.discoverUsers(req.userId!, {
+    const users = await matchingService.discoverUsers(req.user!.userId, {
       cafeId: cafeId as string,
       interests: interestArray,
       limit: limit ? parseInt(limit as string) : 20,
@@ -51,7 +51,7 @@ router.get('/discover', authenticate, async (req: Request, res: Response) => {
  */
 router.get('/interests', authenticate, async (req: Request, res: Response) => {
   try {
-    const interests = await matchingService.getUserInterests(req.userId!);
+    const interests = await matchingService.getUserInterests(req.user!.userId);
 
     res.json({
       success: true,
@@ -82,7 +82,7 @@ router.post('/interests', authenticate, async (req: Request, res: Response) => {
       });
     }
 
-    await matchingService.setUserInterests(req.userId!, interests);
+    await matchingService.setUserInterests(req.user!.userId, interests);
 
     res.json({
       success: true,
@@ -113,7 +113,7 @@ router.post('/interests/add', authenticate, async (req: Request, res: Response) 
       });
     }
 
-    await matchingService.addUserInterest(req.userId!, interest);
+    await matchingService.addUserInterest(req.user!.userId, interest);
 
     res.json({
       success: true,
@@ -144,7 +144,7 @@ router.post('/interests/remove', authenticate, async (req: Request, res: Respons
       });
     }
 
-    await matchingService.removeUserInterest(req.userId!, interest);
+    await matchingService.removeUserInterest(req.user!.userId, interest);
 
     res.json({
       success: true,
