@@ -140,6 +140,54 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+-- COMPONENT 7: Network Validation & Location Services Tables
+
+-- User presence table (for location tracking)
+CREATE TABLE IF NOT EXISTS user_presence (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  cafe_id UUID REFERENCES cafes(id) ON DELETE CASCADE,
+  in_cafe BOOLEAN DEFAULT false,
+  last_seen_in_cafe TIMESTAMP,
+  current_ssid VARCHAR(100),
+  last_latitude DECIMAL(10, 8),
+  last_longitude DECIMAL(11, 8),
+  validation_method VARCHAR(20),
+  created_at TIMESTAMP DEFAULT NOW(),
+  updated_at TIMESTAMP DEFAULT NOW(),
+  UNIQUE(user_id)
+);
+
+-- Access logs table (for auditing location validation)
+CREATE TABLE IF NOT EXISTS access_logs (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID REFERENCES users(id) ON DELETE SET NULL,
+  cafe_id UUID REFERENCES cafes(id) ON DELETE CASCADE,
+  validation_method VARCHAR(20) NOT NULL,
+  access_granted BOOLEAN NOT NULL,
+  ssid_matched VARCHAR(100),
+  distance_meters DECIMAL(10, 2),
+  suspicious BOOLEAN DEFAULT false,
+  reason TEXT,
+  metadata JSONB,
+  created_at TIMESTAMP DEFAULT NOW()
+);
+
+-- Indexes for location services
+CREATE INDEX IF NOT EXISTS idx_user_presence_user ON user_presence(user_id);
+CREATE INDEX IF NOT EXISTS idx_user_presence_cafe ON user_presence(cafe_id);
+CREATE INDEX IF NOT EXISTS idx_user_presence_in_cafe ON user_presence(in_cafe, last_seen_in_cafe);
+CREATE INDEX IF NOT EXISTS idx_access_logs_user ON access_logs(user_id);
+CREATE INDEX IF NOT EXISTS idx_access_logs_cafe ON access_logs(cafe_id);
+CREATE INDEX IF NOT EXISTS idx_access_logs_suspicious ON access_logs(suspicious);
+CREATE INDEX IF NOT EXISTS idx_access_logs_created ON access_logs(created_at);
+
+-- Triggers for user_presence updated_at
+CREATE TRIGGER update_user_presence_updated_at
+  BEFORE UPDATE ON user_presence
+  FOR EACH ROW
+  EXECUTE FUNCTION update_updated_at_column();
+
 -- Component 2: Real-time Chat Tables
 
 -- Messages table (for real-time chat)

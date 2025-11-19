@@ -2,6 +2,7 @@ import { Router } from 'express';
 import authRoutes from './authRoutes';
 import userRoutes from './userRoutes';
 import badgeRoutes from './badgeRoutes';
+import locationRoutes from './locationRoutes';
 import chatRoutes from './chatRoutes';
 import rateLimitRoutes from './rateLimitRoutes';
 import matchingRoutes from './matching.routes';
@@ -25,6 +26,9 @@ router.use('/v1', rateLimitRoutes);
 router.use('/matching', matchingRoutes);
 router.use('/pokes', pokeRoutes);
 router.use('/dm', dmRoutes);
+
+// Component 7: Network Validation & Location Services
+router.use('/location', locationRoutes);
 
 // Health check endpoint
 router.get('/health', (req, res) => {
