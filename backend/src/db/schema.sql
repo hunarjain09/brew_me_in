@@ -292,16 +292,8 @@ CREATE TABLE IF NOT EXISTS moderation_actions (
   created_at TIMESTAMP DEFAULT NOW()
 );
 
--- Messages table (for chat and moderation)
-CREATE TABLE IF NOT EXISTS messages (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  cafe_id UUID REFERENCES cafes(id) ON DELETE CASCADE,
-  user_id UUID REFERENCES users(id) ON DELETE CASCADE,
-  content TEXT NOT NULL,
-  message_type VARCHAR(50) DEFAULT 'chat',
-  deleted_at TIMESTAMP,
-  created_at TIMESTAMP DEFAULT NOW()
-);
+-- NOTE: Messages table is defined in Component 2 (line ~146) and is shared
+-- between real-time chat and moderation features
 
 -- Cafe analytics (daily aggregated stats)
 CREATE TABLE IF NOT EXISTS cafe_analytics (
@@ -357,9 +349,7 @@ CREATE INDEX IF NOT EXISTS idx_moderators_email ON moderators(email);
 CREATE INDEX IF NOT EXISTS idx_moderation_user ON moderation_actions(target_user_id);
 CREATE INDEX IF NOT EXISTS idx_moderation_moderator ON moderation_actions(moderator_id);
 CREATE INDEX IF NOT EXISTS idx_moderation_created ON moderation_actions(created_at DESC);
-CREATE INDEX IF NOT EXISTS idx_messages_cafe ON messages(cafe_id);
-CREATE INDEX IF NOT EXISTS idx_messages_user ON messages(user_id);
-CREATE INDEX IF NOT EXISTS idx_messages_created ON messages(created_at DESC);
+-- NOTE: Message indexes are defined in Component 2 section
 CREATE INDEX IF NOT EXISTS idx_analytics_cafe_date ON cafe_analytics(cafe_id, date DESC);
 CREATE INDEX IF NOT EXISTS idx_agent_queries_cafe ON agent_queries(cafe_id);
 CREATE INDEX IF NOT EXISTS idx_agent_queries_created ON agent_queries(created_at DESC);
