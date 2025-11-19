@@ -1,174 +1,361 @@
-# Brew Me In - Background Jobs & Scheduled Tasks
+# brew_me_in
 
-An AI-powered café social platform with comprehensive background job scheduling and automated task management.
+A location-based social networking app for coffee shops, enabling temporary connections and AI-powered conversations between cafe visitors.
 
 ## Overview
 
-Brew Me In is a TypeScript-based Node.js application that implements a robust scheduler agent for managing background jobs and scheduled tasks. The system handles user session management, badge calculations, analytics aggregation, and proactive AI-generated messages.
+brew_me_in creates ephemeral social experiences within coffee shops by:
+- Generating temporary usernames for customers upon purchase
+- Enabling real-time chat with AI agent assistance
+- Rewarding regular customers with badges and perks
+- Validating physical presence through WiFi/geofencing
+- Automating background jobs for user management and analytics
 
-## Features
+## Tech Stack
 
-### Background Jobs
+### Backend
+- **Runtime**: Node.js with TypeScript
+- **Framework**: Express.js
+- **Database**: PostgreSQL (user data, chat history)
+- **Cache**: Redis (sessions, rate limiting)
+- **Real-time**: Socket.io (WebSocket connections)
+- **AI**: Anthropic Claude API
+- **Authentication**: JWT tokens
+- **Job Scheduling**: node-cron
 
-1. **User Expiration** (Hourly)
-   - Automatically expires inactive user sessions
-   - Clears expired users from Redis cache
-   - Updates café statistics in real-time
-
-2. **Badge Management** (Daily)
-   - Expires time-limited badges
-   - Calculates and awards new badges based on user behavior
-   - Badge types: Early Bird, Night Owl, Social Butterfly, Frequent Visitor
-
-3. **Poke Cleanup** (Every 5 minutes)
-   - Removes expired poke interactions
-   - Maintains cache consistency
-
-4. **Analytics Aggregation** (Hourly)
-   - Aggregates user activity metrics
-   - Tracks pokes, messages, and session durations
-   - Stores hourly analytics per café
-
-5. **Proactive Messages** (Every 2 minutes)
-   - AI-generated contextual messages
-   - Activity-based triggers
-   - Rate-limited to prevent spam
-
-## Architecture
-
-```
-┌─────────────────────────────────────────────────────┐
-│                   Load Balancer                     │
-└─────────────────────────────────────────────────────┘
-                        │
-        ┌───────────────┼───────────────┐
-        │               │               │
-┌───────▼──────┐ ┌──────▼──────┐ ┌─────▼───────┐
-│   API        │ │   Socket.io  │ │   Static    │
-│   Servers    │ │   Servers    │ │   Assets    │
-│   (Node.js)  │ │   (Node.js)  │ │   (CDN)     │
-└───────┬──────┘ └──────┬──────┘ └─────────────┘
-        │               │
-        └───────┬───────┘
-                │
-    ┌───────────┼───────────┐
-    │           │           │
-┌───▼────┐ ┌───▼────┐ ┌───▼────┐
-│Postgres│ │ Redis  │ │ Claude │
-│   DB   │ │ Cache  │ │  API   │
-└────────┘ └────────┘ └────────┘
-```
+### Frontend
+- React Native (iOS/Android)
+- React Web
+- Socket.io Client
 
 ## Project Structure
 
 ```
 brew_me_in/
-├── src/
-│   ├── scheduler/
-│   │   ├── index.ts              # Main scheduler orchestrator
-│   │   └── jobs/
-│   │       ├── expireUsers.ts    # User expiration job
-│   │       ├── expireBadges.ts   # Badge expiration job
-│   │       ├── calculateBadges.ts # Badge calculation job
-│   │       ├── expirePokes.ts    # Poke cleanup job
-│   │       ├── aggregateAnalytics.ts # Analytics job
-│   │       └── proactiveMessages.ts  # AI message job
-│   ├── config/
-│   │   ├── database.ts           # PostgreSQL configuration
-│   │   └── redis.ts              # Redis configuration
-│   ├── types/
-│   │   └── index.ts              # TypeScript type definitions
-│   ├── utils/
-│   │   └── logger.ts             # Winston logger setup
-│   └── index.ts                  # Main application entry
-├── database/
-│   └── schema.sql                # Database schema
-├── package.json
-├── tsconfig.json
-├── .env.example
+├── backend/
+│   ├── src/
+│   │   ├── config/         # Configuration management
+│   │   ├── controllers/    # Request handlers
+│   │   ├── db/            # Database connections and schemas
+│   │   ├── middleware/    # Express middleware
+│   │   ├── models/        # Data models
+│   │   ├── routes/        # API routes
+│   │   ├── scheduler/     # Background jobs & cron tasks
+│   │   ├── utils/         # Utilities (JWT, validation)
+│   │   ├── types/         # TypeScript types
+│   │   ├── app.ts         # Express app setup
+│   │   └── index.ts       # Server entry point
+│   ├── package.json
+│   └── tsconfig.json
 └── README.md
 ```
 
-## Installation
+## Getting Started
 
 ### Prerequisites
 
-- Node.js 18+ and npm
+- Node.js 18+
 - PostgreSQL 14+
-- Redis 6+
+- Redis 7+
+- npm or yarn
 
-### Setup
+### Backend Setup
 
-1. Clone the repository:
-```bash
-git clone <repository-url>
-cd brew_me_in
-```
+1. **Navigate to backend directory**
+   ```bash
+   cd backend
+   ```
 
-2. Install dependencies:
-```bash
-npm install
-```
+2. **Install dependencies**
+   ```bash
+   npm install
+   ```
 
-3. Set up environment variables:
-```bash
-cp .env.example .env
-# Edit .env with your configuration
-```
+3. **Configure environment**
+   ```bash
+   cp .env.example .env
+   ```
 
-4. Initialize the database:
-```bash
-psql -U postgres -d brew_me_in -f database/schema.sql
-```
+   Edit `.env` with your configuration:
+   - Database credentials
+   - Redis connection
+   - JWT secrets
+   - Anthropic API key
 
-5. Build the project:
-```bash
-npm run build
-```
+4. **Set up database**
 
-## Usage
+   Create PostgreSQL database:
+   ```bash
+   createdb brew_me_in
+   ```
 
-### Development Mode
+   Run migrations:
+   ```bash
+   npm run migrate
+   ```
 
-Start the application with hot reloading:
-```bash
-npm run dev
-```
+5. **Start development server**
+   ```bash
+   npm run dev
+   ```
 
-Start only the scheduler:
-```bash
-npm run scheduler
-```
+The server will start on `http://localhost:3000`
 
-### Production Mode
+### Production Build
 
-Build and start the application:
 ```bash
 npm run build
 npm start
 ```
 
+## API Documentation
+
+### Authentication Endpoints
+
+#### Generate Username (Barista)
+```http
+POST /api/auth/barista/generate-username
+Content-Type: application/json
+
+{
+  "cafeId": "uuid",
+  "receiptId": "string"
+}
+
+Response:
+{
+  "username": "HappyOtter42",
+  "joinToken": "token-string",
+  "expiresAt": "2024-01-01T12:00:00Z"
+}
+```
+
+#### Join Cafe (Customer)
+```http
+POST /api/auth/join
+Content-Type: application/json
+
+{
+  "username": "HappyOtter42",
+  "joinToken": "token-string",
+  "cafeId": "uuid",
+  "wifiSsid": "CafeWiFi-Guest",  // Optional
+  "latitude": 37.7749,            // Optional
+  "longitude": -122.4194          // Optional
+}
+
+Response:
+{
+  "accessToken": "jwt-token",
+  "refreshToken": "jwt-refresh-token",
+  "user": { ... }
+}
+```
+
+#### Refresh Token
+```http
+POST /api/auth/refresh
+Content-Type: application/json
+
+{
+  "refreshToken": "jwt-refresh-token"
+}
+
+Response:
+{
+  "accessToken": "new-jwt-token",
+  "user": { ... }
+}
+```
+
+### User Endpoints
+
+All user endpoints require `Authorization: Bearer <token>` header.
+
+#### Get Current User
+```http
+GET /api/users/me
+
+Response:
+{
+  "user": {
+    "id": "uuid",
+    "username": "HappyOtter42",
+    "cafeId": "uuid",
+    "badgeStatus": "active",
+    "tipCount": 7,
+    ...
+  }
+}
+```
+
+#### Update Interests
+```http
+PUT /api/users/me/interests
+Content-Type: application/json
+
+{
+  "interests": ["coffee", "tech", "music"]
+}
+```
+
+#### Toggle Poke Feature
+```http
+PUT /api/users/me/poke-enabled
+Content-Type: application/json
+
+{
+  "enabled": true
+}
+```
+
+### Badge Endpoints
+
+#### Record Tip
+```http
+POST /api/badges/record-tip
+Content-Type: application/json
+
+{
+  "userId": "uuid",
+  "amount": 5.00
+}
+
+Response:
+{
+  "tip": { ... },
+  "eligibility": {
+    "eligible": true,
+    "tipsInWindow": 5,
+    "tipsNeeded": 0
+  },
+  "badge": { ... }
+}
+```
+
+#### Get Badge Status
+```http
+GET /api/badges/status
+Authorization: Bearer <token>
+
+Response:
+{
+  "hasBadge": true,
+  "badgeStatus": "active",
+  "eligibility": {
+    "tipsInWindow": 7,
+    "tipsNeeded": 0,
+    "tipThreshold": 5,
+    "windowDays": 7
+  },
+  "perks": ["Priority in chat", "Extended session", ...]
+}
+```
+
+## Features
+
+### 1. User Management & Authentication
+- **Temporary Usernames**: 24-hour session-based usernames
+- **Barista Portal**: Receipt-to-username mapping
+- **Network Validation**: WiFi SSID + Geofencing fallback
+- **JWT Authentication**: Access and refresh tokens
+
+### 2. Badge System
+- **Criteria**: 5 tips within 7 days
+- **Duration**: 30-day badge validity
+- **Perks**: Priority features, extended sessions
+- **Tracking**: Automatic tip counting and badge assignment
+
+### 3. Background Jobs & Scheduled Tasks
+
+Automated scheduler agent handles the following background jobs:
+
+#### Scheduled Jobs
+
+| Job | Schedule | Description |
+|-----|----------|-------------|
+| expireUsers | `0 * * * *` | Every hour - Expires inactive users and clears cache |
+| expireBadges | `0 0 * * *` | Daily at midnight - Expires time-limited badges |
+| calculateBadges | `5 0 * * *` | Daily at 12:05 AM - Awards new badges (Early Bird, Night Owl, Social Butterfly, Frequent Visitor) |
+| expirePokes | `*/5 * * * *` | Every 5 minutes - Cleans up expired poke interactions |
+| aggregateAnalytics | `5 * * * *` | Every hour at :05 - Aggregates activity metrics per café |
+| proactiveMessages | `*/2 * * * *` | Every 2 minutes - Sends AI-generated contextual messages |
+
+#### Job Features
+- Comprehensive error handling with Winston logging
+- Automatic Redis cache invalidation
+- Graceful shutdown support
+- Rate limiting for proactive messages
+- Detailed execution logging
+
+#### Scheduler API Endpoints
+
+```http
+# Health Check (includes scheduler status)
+GET /health
+
+# Scheduler Status
+GET /api/scheduler/status
+
+# Manual Job Trigger (Testing/Admin)
+POST /api/scheduler/trigger/:jobName
+# Available jobs: expireUsers, expireBadges, calculateBadges, expirePokes, aggregateAnalytics, proactiveMessages
+```
+
+### 4. Security Features
+- Rate limiting on all endpoints
+- JWT token rotation
+- Network-based authentication
+- SQL injection prevention
+- XSS protection via Helmet.js
+
+## Database Schema
+
+### Core Tables
+- `cafes` - Cafe information and WiFi networks
+- `users` - Temporary user accounts (24h expiration)
+- `badges` - User badge status and eligibility
+- `tips` - Tip tracking for badge system
+- `join_tokens` - Barista-generated invitation tokens
+- `refresh_tokens` - JWT refresh token storage
+- `analytics` - Aggregated hourly metrics per café
+- `agent_messages` - AI-generated proactive messages
+
+### Automatic Cleanup
+Database functions and scheduled jobs automatically clean up:
+- Expired users (24h sessions) - via hourly job
+- Expired join tokens (15min validity) - via database triggers
+- Expired badges (30 days) - via daily job
+- Expired pokes - via 5-minute job
+- Revoked refresh tokens - via database cleanup functions
+
 ## Configuration
 
-### Environment Variables
+Key environment variables:
 
 ```env
-# Database
-DATABASE_URL=postgresql://user:password@localhost:5432/brew_me_in
-DB_HOST=localhost
-DB_PORT=5432
-DB_NAME=brew_me_in
-DB_USER=postgres
-DB_PASSWORD=password
-
-# Redis
-REDIS_URL=redis://localhost:6379
-REDIS_HOST=localhost
-REDIS_PORT=6379
-
 # Server
 PORT=3000
 NODE_ENV=development
+
+# Database
+DATABASE_URL=postgresql://user:pass@localhost:5432/brew_me_in
+
+# Redis
+REDIS_HOST=localhost
+REDIS_PORT=6379
+
+# JWT
+JWT_SECRET=your-secret-here
+JWT_EXPIRES_IN=24h
+
+# Badge Settings
+BADGE_TIP_THRESHOLD=5
+BADGE_TIP_WINDOW_DAYS=7
+BADGE_DURATION_DAYS=30
+
+# User Settings
+USER_SESSION_DURATION_HOURS=24
 
 # Scheduler
 ENABLE_SCHEDULER=true
@@ -178,70 +365,26 @@ ENABLE_PROACTIVE_MESSAGES=true
 LOG_LEVEL=info
 ```
 
-## API Endpoints
+## Development Workflow
 
-### Health Check
-```
-GET /health
-```
-Returns system health status including database and scheduler status.
-
-### Scheduler Status
-```
-GET /api/scheduler/status
-```
-Returns current scheduler status and running jobs.
-
-### Manual Job Trigger (Testing/Admin)
-```
-POST /api/scheduler/trigger/:jobName
-```
-Manually triggers a specific job. Available jobs:
-- `expireUsers`
-- `expireBadges`
-- `calculateBadges`
-- `expirePokes`
-- `aggregateAnalytics`
-- `proactiveMessages`
-
-## Scheduled Jobs
-
-| Job | Schedule | Description |
-|-----|----------|-------------|
-| expireUsers | `0 * * * *` | Every hour - Expires inactive users |
-| expireBadges | `0 0 * * *` | Daily at midnight - Expires badges |
-| calculateBadges | `5 0 * * *` | Daily at 12:05 AM - Calculates new badges |
-| expirePokes | `*/5 * * * *` | Every 5 minutes - Cleans up pokes |
-| aggregateAnalytics | `5 * * * *` | Every hour at :05 - Aggregates analytics |
-| proactiveMessages | `*/2 * * * *` | Every 2 minutes - Sends AI messages |
-
-## Database Schema
-
-The application uses PostgreSQL with the following main tables:
-- `cafes` - Café locations and settings
-- `users` - Temporary user accounts with expiration
-- `user_sessions` - Session tracking for analytics
-- `badges` - User achievements and badges
-- `pokes` - User-to-user interactions
-- `messages` - Chat messages
-- `analytics` - Aggregated hourly metrics
-- `agent_messages` - AI-generated proactive messages
-
-See `database/schema.sql` for complete schema definition.
-
-## Logging
-
-Logs are stored in the `logs/` directory:
-- `error.log` - Error-level logs only
-- `combined.log` - All logs
-
-Logs are automatically rotated when they reach 5MB (keeps 5 files).
-
-## Development
-
-### Running Tests
+### Running Migrations
 ```bash
-npm test
+npm run migrate
+```
+
+### Development Mode
+```bash
+npm run dev
+```
+
+### Start Scheduler Only
+```bash
+npm run scheduler
+```
+
+### Building for Production
+```bash
+npm run build
 ```
 
 ### Linting
@@ -249,39 +392,40 @@ npm test
 npm run lint
 ```
 
-### Code Formatting
-```bash
-npm run format
-```
+## Architecture Decisions
 
-## Graceful Shutdown
+### Why PostgreSQL?
+- ACID compliance for user/transaction data
+- Complex queries for badge eligibility
+- Reliable data integrity
 
-The application handles graceful shutdown on SIGTERM and SIGINT:
-1. Stops all scheduled jobs
-2. Closes database connections
-3. Closes Redis connections
-4. Exits cleanly
+### Why Redis?
+- Fast session storage
+- Distributed rate limiting
+- Real-time pub/sub for Socket.io scaling
+- Job scheduling and caching
 
-## Performance Considerations
+### Why JWT?
+- Stateless authentication
+- Mobile-friendly
+- Easy token rotation
 
-- **Redis Caching**: Frequently accessed data is cached in Redis
-- **Connection Pooling**: PostgreSQL connection pool (max 20 connections)
-- **Batch Operations**: Jobs process records in batches where possible
-- **Indexes**: Optimized database indexes for common queries
-- **Rate Limiting**: Proactive messages are rate-limited per café
+### Why node-cron?
+- Lightweight and reliable
+- Easy cron syntax
+- Good TypeScript support
+- No additional dependencies needed
 
-## Security
-
-- Environment variables for sensitive configuration
-- Prepared statements to prevent SQL injection
-- CORS configuration for API access
-- Input validation on all endpoints
+### Network Validation Strategy
+1. **Primary**: WiFi SSID matching (most reliable)
+2. **Fallback**: GPS geofencing (when WiFi unavailable)
+3. **Radius**: Configurable per-cafe (default 100m)
 
 ## Monitoring
 
-Monitor the scheduler health via:
-1. `/health` endpoint for overall system status
-2. `/api/scheduler/status` for scheduler-specific status
+Monitor system health via:
+1. `/health` endpoint - Overall system status including scheduler
+2. `/api/scheduler/status` - Detailed scheduler and job status
 3. Winston logs in `logs/` directory
 4. Database analytics table for historical metrics
 
@@ -307,17 +451,21 @@ Monitor the scheduler health via:
 - Check `REDIS_URL` configuration
 - Review Redis logs
 
-## Contributing
+## Future Enhancements
 
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Submit a pull request
+- [ ] Socket.io real-time chat implementation (Component 2)
+- [ ] Advanced rate limiting (Component 3)
+- [ ] Interest matching & pokes (Component 4)
+- [ ] Claude AI agent integration (Component 5)
+- [ ] Moderator dashboard (Component 6)
+- [ ] React Native mobile apps
+- [ ] Admin dashboard for cafe owners
+- [ ] Multi-language support
 
 ## License
 
-ISC
+MIT
 
-## Support
+## Contributing
 
-For issues and questions, please open an issue on the repository.
+This is a private project. For questions or suggestions, please contact the development team.
