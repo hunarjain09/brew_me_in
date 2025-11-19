@@ -33,7 +33,7 @@ test.describe('Authentication Flow', () => {
     // Set up auth state
     await page.goto('/');
     await page.evaluate(() => {
-      localStorage.setItem('auth_token', 'mock-jwt-token');
+      localStorage.setItem('token', 'mock-jwt-token');
       localStorage.setItem('moderator', JSON.stringify({
         id: 'test-mod-1',
         email: 'moderator@test.com',
@@ -62,10 +62,14 @@ test.describe('Authentication Flow', () => {
     // Set up auth state
     await page.goto('/');
     await page.evaluate(() => {
-      localStorage.setItem('auth_token', 'mock-jwt-token');
+      localStorage.setItem('token', 'mock-jwt-token');
       localStorage.setItem('moderator', JSON.stringify({
         id: 'test-mod-1',
         email: 'moderator@test.com',
+      }));
+      localStorage.setItem('cafe', JSON.stringify({
+        id: 'test-cafe-1',
+        name: 'Test Cafe',
       }));
     });
 
@@ -81,7 +85,7 @@ test.describe('Authentication Flow', () => {
     // Set up auth state
     await page.goto('/');
     await page.evaluate(() => {
-      localStorage.setItem('auth_token', 'mock-jwt-token');
+      localStorage.setItem('token', 'mock-jwt-token');
       localStorage.setItem('moderator', JSON.stringify({
         id: 'test-mod-1',
         email: 'moderator@test.com',
@@ -103,7 +107,7 @@ test.describe('Authentication Flow', () => {
     await page.waitForURL(/.*login/);
 
     // Check that auth state is cleared
-    const authToken = await page.evaluate(() => localStorage.getItem('auth_token'));
+    const authToken = await page.evaluate(() => localStorage.getItem('token'));
     expect(authToken).toBeNull();
 
     // Take snapshot after logout
@@ -117,7 +121,7 @@ test.describe('Authentication Flow', () => {
     // Set up auth state
     await page.goto('/');
     await page.evaluate(() => {
-      localStorage.setItem('auth_token', 'mock-jwt-token');
+      localStorage.setItem('token', 'mock-jwt-token');
       localStorage.setItem('moderator', JSON.stringify({
         id: 'test-mod-1',
         email: 'moderator@test.com',
@@ -140,7 +144,7 @@ test.describe('Authentication Flow', () => {
     expect(page.url()).not.toContain('/login');
 
     // Auth token should still exist
-    const authToken = await page.evaluate(() => localStorage.getItem('auth_token'));
+    const authToken = await page.evaluate(() => localStorage.getItem('token'));
     expect(authToken).toBe('mock-jwt-token');
   });
 

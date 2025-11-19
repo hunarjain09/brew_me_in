@@ -9,7 +9,7 @@ test.describe('Visual Regression Tests', () => {
     // Mock authentication state
     await page.goto('/');
     await page.evaluate(() => {
-      localStorage.setItem('auth_token', 'mock-jwt-token');
+      localStorage.setItem('token', 'mock-jwt-token');
       localStorage.setItem('moderator', JSON.stringify({
         id: 'test-mod-1',
         email: 'moderator@test.com',
@@ -35,8 +35,8 @@ test.describe('Visual Regression Tests', () => {
 
   test('should match gradient background', async ({ page }) => {
     await page.goto('/');
-    await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(1000);
+    await page.waitForLoadState('load');
+    await page.waitForTimeout(500);
 
     // Take snapshot of background gradient
     await expect(page).toHaveScreenshot('gradient-background.png', {
@@ -116,8 +116,8 @@ test.describe('Visual Regression Tests', () => {
     for (const viewport of viewports) {
       await page.setViewportSize({ width: viewport.width, height: viewport.height });
       await page.goto('/');
-      await page.waitForLoadState('networkidle');
-      await page.waitForTimeout(1000);
+      await page.waitForLoadState('load');
+      await page.waitForTimeout(300);
 
       await expect(page).toHaveScreenshot(`dashboard-${viewport.name}.png`, {
         fullPage: true,
@@ -137,8 +137,8 @@ test.describe('Visual Regression Tests', () => {
 
     for (const pageDef of pages) {
       await page.goto(pageDef.path);
-      await page.waitForLoadState('networkidle');
-      await page.waitForTimeout(1000);
+      await page.waitForLoadState('load');
+      await page.waitForTimeout(300);
 
       // Full page snapshot
       await expect(page).toHaveScreenshot(`page-${pageDef.name}-full.png`, {
@@ -158,7 +158,7 @@ test.describe('Visual Regression Tests', () => {
     // Clear auth to access login
     await page.evaluate(() => localStorage.clear());
     await page.goto('/login');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('load');
 
     // Empty state
     await expect(page).toHaveScreenshot('login-empty.png', {

@@ -11,7 +11,7 @@ test.describe('Login Page', () => {
 
   test('should render login page correctly', async ({ page }) => {
     // Wait for page to be fully loaded
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('load');
 
     // Check that we're on the login page
     await expect(page).toHaveURL(/.*login/);
@@ -80,7 +80,7 @@ test.describe('Login Page', () => {
   test('should be responsive on mobile', async ({ page }) => {
     // Set mobile viewport
     await page.setViewportSize({ width: 375, height: 667 });
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('load');
 
     // Take mobile snapshot
     await expect(page).toHaveScreenshot('login-mobile.png', {
@@ -92,7 +92,7 @@ test.describe('Login Page', () => {
   test('should be responsive on tablet', async ({ page }) => {
     // Set tablet viewport
     await page.setViewportSize({ width: 768, height: 1024 });
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('load');
 
     // Take tablet snapshot
     await expect(page).toHaveScreenshot('login-tablet.png', {
