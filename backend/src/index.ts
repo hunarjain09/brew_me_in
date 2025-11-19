@@ -1,108 +1,123 @@
-import express, { Request, Response } from 'express';
 import { createServer } from 'http';
-import cors from 'cors';
-import helmet from 'helmet';
-import dotenv from 'dotenv';
-import pool from './config/database';
-import { connectRedis } from './config/redis';
-import { initializeWebSocket } from './websocket';
-import logger from './utils/logger';
+import app from './app';
+import { config } from './config';
+import { db } from './db/connection';
+import { connectRedis } from './db/redis';
+import { logger } from './config/logger';
+import { ChatHandler } from './socket/chatHandler';
+import notificationService from './services/notification.service';
+import { startPokeExpirationJob } from './jobs/poke-expiration.job';
 
-// Import routes
-import authRoutes from './routes/auth';
-import moderationRoutes from './routes/moderation';
-import usersRoutes from './routes/users';
-import analyticsRoutes from './routes/analytics';
-import agentRoutes from './routes/agent';
-import activityRoutes from './routes/activity';
-import eventsRoutes from './routes/events';
-
-dotenv.config();
-
-const app = express();
-const httpServer = createServer(app);
-const PORT = process.env.PORT || 3000;
-
-// Middleware
-app.use(helmet());
-app.use(cors({
-  origin: process.env.CORS_ORIGIN || 'http://localhost:5173',
-  credentials: true,
-}));
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-
-// Request logging
-app.use((req, res, next) => {
-  logger.info('Incoming request', {
-    method: req.method,
-    path: req.path,
-    ip: req.ip,
-  });
-  next();
-});
-
-// Health check
-app.get('/health', (req: Request, res: Response) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
-});
-
-// API Routes
-app.use('/api/admin/auth', authRoutes);
-app.use('/api/admin/moderation', moderationRoutes);
-app.use('/api/admin/users', usersRoutes);
-app.use('/api/admin/analytics', analyticsRoutes);
-app.use('/api/admin/agent', agentRoutes);
-app.use('/api/admin', activityRoutes);
-app.use('/api/admin/events', eventsRoutes);
-
-// 404 handler
-app.use((req: Request, res: Response) => {
-  res.status(404).json({ error: 'Route not found' });
-});
-
-// Error handler
-app.use((err: Error, req: Request, res: Response, next: any) => {
-  logger.error('Unhandled error', { error: err.message, stack: err.stack });
-  res.status(500).json({ error: 'Internal server error' });
-});
-
-// Initialize connections and start server
-const startServer = async () => {
+async function startServer() {
   try {
+    logger.info('Starting brew_me_in Backend Server...');
+
     // Test database connection
-    await pool.query('SELECT NOW()');
-    logger.info('✓ Database connected');
+    logger.info('Testing database connection...');
+    await db.query('SELECT NOW()');
+    logger.info('Database connected successfully');
 
     // Connect to Redis
+    logger.info('Connecting to Redis...');
     await connectRedis();
-    logger.info('✓ Redis connected');
+    logger.info('Redis connected successfully');
 
-    // Initialize WebSocket
-    const websocket = initializeWebSocket(httpServer);
-    logger.info('✓ WebSocket initialized');
+    // Create HTTP server
+    const httpServer = createServer(app);
 
-    // Start HTTP server
-    httpServer.listen(PORT, () => {
-      logger.info(`✓ Server running on port ${PORT}`);
-      logger.info(`Environment: ${process.env.NODE_ENV || 'development'}`);
+    // Initialize Component 2: Socket.io chat handler
+    const chatHandler = new ChatHandler(httpServer);
+    logger.info('Socket.io chat handler initialized (Component 2)');
+
+    // Initialize Component 4: Notification Service (Socket.IO)
+    notificationService.initialize(httpServer);
+    logger.info('Socket.io notification service initialized (Component 4)');
+
+    // Start Component 4: Poke expiration background job
+    startPokeExpirationJob();
+    logger.info('Poke expiration job started (Component 4)');
+
+    // Start server
+    httpServer.listen(config.port, () => {
+      console.log(`
+🚀 brew_me_in Backend Server Started
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Environment: ${config.env}
+Port: ${config.port}
+Database: ${config.database.name}
+Redis: ${config.redis.host}:${config.redis.port}
+WebSocket: Enabled (Socket.io)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+API Endpoints:
+  [Authentication]
+  POST   /api/auth/barista/generate-username
+  POST   /api/auth/join
+  POST   /api/auth/refresh
+
+  [User Management]
+  GET    /api/users/me
+  PUT    /api/users/me/interests
+  PUT    /api/users/me/poke-enabled
+
+  [Badge System]
+  POST   /api/badges/record-tip
+  GET    /api/badges/status
+
+  [Real-time Chat - Component 2]
+  GET    /api/chat/messages/:cafeId
+  POST   /api/chat/messages
+  DELETE /api/chat/messages/:messageId
+  GET    /api/chat/presence/:cafeId
+
+  [Rate Limiting - Component 3]
+  GET    /api/v1/ratelimit/status
+  POST   /api/v1/ratelimit/check
+  POST   /api/v1/spam/check
+
+  [Interest Matching - Component 4]
+  GET    /api/matching/discover
+  POST   /api/matching/interests
+  POST   /api/matching/interests/add
+  POST   /api/matching/interests/remove
+
+  [Poke System - Component 4]
+  POST   /api/pokes/send
+  POST   /api/pokes/respond
+  GET    /api/pokes/pending
+  GET    /api/pokes/sent
+
+  [Direct Messaging - Component 4]
+  GET    /api/dm/channels
+  GET    /api/dm/:channelId/messages
+  POST   /api/dm/:channelId/messages
+  DELETE /api/dm/messages/:messageId
+
+  [Health]
+  GET    /api/health
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+      `);
+      logger.info(`Server listening on port ${config.port}`);
     });
   } catch (error) {
-    logger.error('Failed to start server', { error });
+    logger.error('Failed to start server:', error);
+    console.error('Failed to start server:', error);
     process.exit(1);
   }
-};
+}
 
-// Graceful shutdown
+// Handle graceful shutdown
 process.on('SIGTERM', async () => {
-  logger.info('SIGTERM received, shutting down gracefully');
-  httpServer.close(() => {
-    logger.info('HTTP server closed');
-    pool.end(() => {
-      logger.info('Database pool closed');
-      process.exit(0);
-    });
-  });
+  logger.info('SIGTERM received, shutting down gracefully...');
+  console.log('SIGTERM received, shutting down gracefully...');
+  await db.close();
+  process.exit(0);
+});
+
+process.on('SIGINT', async () => {
+  logger.info('SIGINT received, shutting down gracefully...');
+  console.log('SIGINT received, shutting down gracefully...');
+  await db.close();
+  process.exit(0);
 });
 
 startServer();

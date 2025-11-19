@@ -1,24 +1,101 @@
-// Type definitions for Moderator Dashboard
+// COMPONENT 1: User Management & Authentication
+export interface User {
+  id: string;
+  username: string;
+  cafeId: string;
+  receiptId: string;
+  createdAt: Date;
+  expiresAt: Date;
+  interests: string[];
+  pokeEnabled: boolean;
+  badgeStatus: 'none' | 'active' | 'expired';
+  badgeExpiresAt?: Date;
+  tipCount: number;
+  lastTipDate?: Date;
+}
+
+export interface Badge {
+  userId: string;
+  earnedAt: Date;
+  expiresAt: Date;
+  tipsInPeriod: number;
+  periodStartDate: Date;
+}
+
+export interface Tip {
+  id: string;
+  userId: string;
+  cafeId: string;
+  amount: number;
+  createdAt: Date;
+}
 
 export interface Cafe {
   id: string;
   name: string;
-  location?: string;
-  description?: string;
-  created_at: Date;
-  updated_at: Date;
+  wifiSsid: string;
+  latitude?: number;
+  longitude?: number;
+  geofenceRadius?: number;
+  createdAt: Date;
 }
 
-export interface User {
-  id: string;
-  cafe_id: string;
+export interface JWTPayload {
+  userId: string;
   username: string;
-  receipt_id?: string;
-  is_banned: boolean;
-  created_at: Date;
-  last_seen_at: Date;
+  cafeId: string;
 }
 
+export interface AuthTokens {
+  accessToken: string;
+  refreshToken: string;
+}
+
+// COMPONENT 2: Real-time Chat
+export interface Message {
+  id: string;
+  userId: string | null;
+  username: string;
+  cafeId: string;
+  content: string;
+  messageType: 'user' | 'agent' | 'system' | 'barista';
+  metadata?: {
+    interests?: string[];
+    badgeHolder?: boolean;
+  };
+  createdAt: Date;
+  deletedAt?: Date;
+}
+
+export interface SocketData {
+  userId: string;
+  username: string;
+  cafeId?: string;
+}
+
+export interface ClientToServerEvents {
+  'join:cafe': (data: { cafeId: string; userId: string; location?: { lat: number; lng: number } }) => void;
+  'leave:cafe': (data: { cafeId: string }) => void;
+  'message:send': (data: { content: string; cafeId: string }) => void;
+  'typing:start': (data: { cafeId: string }) => void;
+  'typing:stop': (data: { cafeId: string }) => void;
+  'presence:update': (data: { inCafe: boolean; cafeId?: string }) => void;
+}
+
+export interface ServerToClientEvents {
+  'message:new': (message: Message) => void;
+  'users:update': (data: { total: number; inCafe: number; userList?: string[] }) => void;
+  'typing:indicator': (data: { username: string; cafeId: string }) => void;
+  'topics:update': (data: { topics: { word: string; count: number }[] }) => void;
+  'error': (data: { message: string; code?: string }) => void;
+  'connected': (data: { userId: string; cafeId?: string }) => void;
+}
+
+export interface InterServerEvents {
+  ping: () => void;
+}
+
+// COMPONENT 6: Moderator Dashboard & Admin Tools
 export interface Moderator {
   id: string;
   cafe_id: string;
@@ -40,16 +117,6 @@ export interface ModerationAction {
   reason?: string;
   duration?: number; // minutes
   metadata?: Record<string, any>;
-  created_at: Date;
-}
-
-export interface Message {
-  id: string;
-  cafe_id: string;
-  user_id: string;
-  content: string;
-  message_type: string;
-  deleted_at?: Date;
   created_at: Date;
 }
 
@@ -96,7 +163,7 @@ export interface CafeEvent {
   created_at: Date;
 }
 
-// API Request/Response types
+// API Request/Response types for Component 6
 export interface LoginRequest {
   email: string;
   password: string;
@@ -153,8 +220,8 @@ export interface DashboardStats {
   flaggedMessages: number;
 }
 
-// WebSocket event types
-export interface SocketEvents {
+// WebSocket event types for Component 6
+export interface AdminSocketEvents {
   // Server -> Client
   'activity:new': (event: ActivityEvent) => void;
   'flag:message': (data: { messageId: string; reason: string }) => void;
@@ -166,8 +233,8 @@ export interface SocketEvents {
   'join:cafe': (cafeId: string) => void;
 }
 
-// JWT Payload
-export interface JWTPayload {
+// Moderator JWT Payload for Component 6
+export interface ModeratorJWTPayload {
   moderatorId: string;
   cafeId: string;
   role: string;
