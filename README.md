@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="logo.png" alt="Brew Me In Logo" width="200"/>
+  <img src="logo.png" alt="Brew Me In Logo" width="400"/>
 </div>
 
 # brew_me_in
