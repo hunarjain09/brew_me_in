@@ -2,44 +2,17 @@
 . "$(dirname -- "$0")/_/husky.sh"
 
 echo "🧪 Running e2e tests before push..."
-echo "🚀 Starting dev server..."
 
-# Start dev server in background
-npm run dev &
-DEV_SERVER_PID=$!
+# Ensure backend .env file exists for tests
+if [ ! -f backend/.env ]; then
+  echo "📝 Creating backend/.env from .env.example..."
+  cp backend/.env.example backend/.env
+fi
 
-# Function to cleanup dev server
-cleanup() {
-  echo "🛑 Stopping dev server..."
-  kill $DEV_SERVER_PID 2>/dev/null
-  wait $DEV_SERVER_PID 2>/dev/null
-}
-
-# Set trap to cleanup on exit
-trap cleanup EXIT
-
-# Wait for dev server to be ready (check port 5173)
-echo "⏳ Waiting for dev server to be ready..."
-for i in $(seq 1 60); do
-  if nc -z localhost 5173 2>/dev/null; then
-    echo "✓ Dev server is ready"
-    break
-  fi
-  if [ $i -eq 60 ]; then
-    echo "❌ Dev server failed to start within 60 seconds"
-    exit 1
-  fi
-  sleep 1
-done
-
-# Run e2e tests
-echo "🧪 Running tests..."
+# Run e2e tests (Playwright will handle starting/stopping the dev server)
 npm run test:e2e
 
-# Capture test exit code
-TEST_EXIT_CODE=$?
-
-if [ $TEST_EXIT_CODE -ne 0 ]; then
+if [ $? -ne 0 ]; then
   echo "❌ E2E tests failed. Push aborted."
   echo "💡 Fix the failing tests or use --no-verify to skip this check."
   exit 1
