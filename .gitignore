@@ -39,6 +39,9 @@ logs/
 .DS_Store
 Thumbs.db
 
+# Redis
+dump.rdb
+
 # Testing
 coverage/
 .nyc_output/

@@ -136,4 +136,117 @@ export const RedisKeys = {
 
   // Session keys
   userSession: (userId: string) => `session:${userId}`,
+
+  // Component 6: Moderation keys
+  cafeMuted: (cafeId: string) => `cafe:${cafeId}:muted`,
+  cafeFlags: (cafeId: string) => `cafe:${cafeId}:flags`,
+  cafeModerators: (cafeId: string) => `cafe:${cafeId}:moderators`,
+  cafeStats: (cafeId: string) => `cafe:${cafeId}:stats`,
 } as const;
+
+/**
+ * Component 6: Moderation cache helpers
+ */
+export const moderationCache = {
+  // Mute a user
+  async muteUser(cafeId: string, userId: string, durationMinutes: number): Promise<void> {
+    const client = redisClient.getClient();
+    const key = RedisKeys.cafeMuted(cafeId);
+    const mutedUntil = Date.now() + (durationMinutes * 60 * 1000);
+    await client.hSet(key, userId, mutedUntil.toString());
+    await client.expire(key, durationMinutes * 60);
+  },
+
+  // Check if user is muted
+  async isUserMuted(cafeId: string, userId: string): Promise<boolean> {
+    const client = redisClient.getClient();
+    const key = RedisKeys.cafeMuted(cafeId);
+    const mutedUntil = await client.hGet(key, userId);
+
+    if (!mutedUntil) return false;
+
+    const now = Date.now();
+    const until = parseInt(mutedUntil);
+
+    if (now > until) {
+      // Mute expired, remove it
+      await client.hDel(key, userId);
+      return false;
+    }
+
+    return true;
+  },
+
+  // Unmute a user
+  async unmuteUser(cafeId: string, userId: string): Promise<void> {
+    const client = redisClient.getClient();
+    const key = RedisKeys.cafeMuted(cafeId);
+    await client.hDel(key, userId);
+  },
+
+  // Get all muted users for a cafe
+  async getMutedUsers(cafeId: string): Promise<string[]> {
+    const client = redisClient.getClient();
+    const key = RedisKeys.cafeMuted(cafeId);
+    const mutedUsers = await client.hGetAll(key);
+    const now = Date.now();
+
+    return Object.entries(mutedUsers)
+      .filter(([_, until]) => parseInt(until) > now)
+      .map(([userId]) => userId);
+  },
+
+  // Add flagged message
+  async flagMessage(cafeId: string, messageId: string, reason: string): Promise<void> {
+    const client = redisClient.getClient();
+    const key = RedisKeys.cafeFlags(cafeId);
+    const flag = JSON.stringify({ messageId, reason, timestamp: Date.now() });
+    await client.lPush(key, flag);
+    await client.lTrim(key, 0, 99); // Keep only last 100 flags
+  },
+
+  // Get flagged messages
+  async getFlaggedMessages(cafeId: string): Promise<Array<{ messageId: string; reason: string; timestamp: number }>> {
+    const client = redisClient.getClient();
+    const key = RedisKeys.cafeFlags(cafeId);
+    const flags = await client.lRange(key, 0, -1);
+    return flags.map(f => JSON.parse(f));
+  },
+
+  // Track active moderators
+  async addModerator(cafeId: string, socketId: string): Promise<void> {
+    const client = redisClient.getClient();
+    const key = RedisKeys.cafeModerators(cafeId);
+    await client.sAdd(key, socketId);
+    await client.expire(key, 3600); // 1 hour
+  },
+
+  // Remove moderator
+  async removeModerator(cafeId: string, socketId: string): Promise<void> {
+    const client = redisClient.getClient();
+    const key = RedisKeys.cafeModerators(cafeId);
+    await client.sRem(key, socketId);
+  },
+
+  // Get active moderators count
+  async getActiveModerators(cafeId: string): Promise<number> {
+    const client = redisClient.getClient();
+    const key = RedisKeys.cafeModerators(cafeId);
+    return await client.sCard(key);
+  },
+
+  // Update dashboard stats (cached)
+  async updateStats(cafeId: string, stats: any): Promise<void> {
+    const client = redisClient.getClient();
+    const key = RedisKeys.cafeStats(cafeId);
+    await client.set(key, JSON.stringify(stats), { EX: 60 }); // Cache for 1 minute
+  },
+
+  // Get dashboard stats
+  async getStats(cafeId: string): Promise<any> {
+    const client = redisClient.getClient();
+    const key = RedisKeys.cafeStats(cafeId);
+    const stats = await client.get(key);
+    return stats ? JSON.parse(stats) : null;
+  },
+};
