@@ -10,17 +10,19 @@ brew_me_in creates ephemeral social experiences within coffee shops by:
 - Rewarding regular customers with badges and perks
 - Validating physical presence through WiFi/geofencing
 - Preventing spam and abuse through intelligent rate limiting
+- Interest-based matching and poke system for 1:1 connections
+- Privacy-first direct messaging for matched users
 
 ## Implementation Status
 
 - **Component 1 (Auth & User Management)**: ✅ IMPLEMENTED
 - **Component 2 (Real-time Chat)**: ✅ IMPLEMENTED
 - **Component 3 (Rate Limiting & Spam Prevention)**: ✅ IMPLEMENTED
-- **Component 4 (Interest Matching)**: 🚧 PLANNED
+- **Component 4 (Interest Matching & Poke System)**: ✅ IMPLEMENTED
 - **Component 5 (AI Agent Integration)**: 🚧 PLANNED
 - **Component 6 (Admin Dashboard)**: 🚧 PLANNED
 - **Component 7 (Network Validation)**: ✅ IMPLEMENTED
-- **Component 8 (Background Jobs)**: 🚧 PLANNED
+- **Component 8 (Background Jobs)**: ⚡ PARTIAL (Poke expiration implemented)
 
 ## Tech Stack
 
@@ -151,6 +153,40 @@ Heuristic-based spam detection with multiple checks:
 - **Soft Warning**: Toast notification for minor violations
 - **Hard Block**: Message rejection for spam
 - **24-Hour Mute**: Automatic mute for severe violations
+
+### 4. Interest Matching & Poke System (Component 4)
+
+#### Interest-Based Discovery
+- **Intelligent Matching**: Find users with shared interests in the same cafe
+- **Priority Sorting**: Users with multiple shared interests ranked higher
+- **Privacy Filters**: Excludes poke-disabled users automatically
+- **Interest Management**: Add/remove individual interests or bulk update
+
+#### Poke System
+- **Privacy-First Design**: Can't see who poked you until you poke back
+- **Mutual Reveal**: Only when both users poke each other, identities are revealed
+- **Rate Limited**: 10 pokes per hour (configurable)
+- **Auto-Expiration**: Pokes expire after 24 hours
+- **Status Tracking**: pending, matched, declined, expired
+- **Match Creation**: Mutual pokes automatically create DM channels
+
+#### Direct Messaging
+- **1:1 Conversations**: Private channels for matched users
+- **Message Persistence**: Full message history with timestamps
+- **Soft Deletion**: Message deletion support
+- **No Rate Limits**: Unlimited messaging within matched channels
+- **Auto-Updated**: Last message timestamp tracked automatically
+
+#### Background Jobs
+- **Poke Expiration**: Runs every 5 minutes to expire old pokes
+- **Automatic Cleanup**: Cleans up pending pokes older than 24 hours
+
+#### Real-Time Notifications
+- **Socket.IO Integration**: Real-time poke and message notifications
+- **Event Types**:
+  - `poke_received` - Someone poked you
+  - `poke_matched` - Mutual match, DM channel created
+  - `dm_message` - New direct message received
 
 ### 5. Security Features
 - Rate limiting on all endpoints
@@ -490,6 +526,162 @@ Response:
 }
 ```
 
+---
+
+### Component 4: Interest Matching & Poke System
+
+#### Discover Users with Shared Interests
+
+```http
+GET /api/matching/discover?cafeId=uuid&interests=coffee,books&limit=20&offset=0
+Authorization: Bearer <token>
+
+Response:
+{
+  "success": true,
+  "data": [
+    {
+      "userId": "uuid",
+      "username": "HappyOtter42",
+      "sharedInterests": ["coffee", "books"],
+      "totalSharedInterests": 2
+    }
+  ],
+  "count": 1
+}
+```
+
+#### Manage User Interests
+
+```http
+# Get interests
+GET /api/matching/interests
+Authorization: Bearer <token>
+
+# Set all interests (replaces existing)
+POST /api/matching/interests
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{
+  "interests": ["coffee", "books", "music"]
+}
+
+# Add single interest
+POST /api/matching/interests/add
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{
+  "interest": "hiking"
+}
+
+# Remove single interest
+POST /api/matching/interests/remove
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{
+  "interest": "hiking"
+}
+```
+
+#### Send Poke
+
+```http
+POST /api/pokes/send
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{
+  "toUserId": "uuid",
+  "sharedInterest": "coffee"
+}
+
+Response:
+{
+  "success": true,
+  "data": {
+    "id": "poke-uuid",
+    "fromUserId": "sender-uuid",
+    "toUserId": "recipient-uuid",
+    "sharedInterest": "coffee",
+    "status": "pending",
+    "createdAt": "2025-11-19T10:00:00.000Z",
+    "expiresAt": "2025-11-20T10:00:00.000Z"
+  },
+  "message": "Poke sent successfully"
+}
+
+# Errors:
+# - 404: User not found or has pokes disabled
+# - 409: Pending poke already exists
+# - 429: Rate limit exceeded (10 pokes/hour)
+```
+
+#### Respond to Poke
+
+```http
+POST /api/pokes/respond
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{
+  "pokeId": "uuid",
+  "action": "accept"  // or "decline"
+}
+
+# Response when matched:
+{
+  "success": true,
+  "data": {
+    "poke": { ... },
+    "matched": true,
+    "channelId": "dm-channel-uuid"
+  },
+  "message": "It's a match! DM channel created"
+}
+```
+
+#### Get Pokes
+
+```http
+# Get incoming pokes
+GET /api/pokes/pending
+Authorization: Bearer <token>
+
+# Get outgoing pokes
+GET /api/pokes/sent
+Authorization: Bearer <token>
+```
+
+#### Direct Messaging
+
+```http
+# Get all DM channels
+GET /api/dm/channels
+Authorization: Bearer <token>
+
+# Get messages from a channel
+GET /api/dm/:channelId/messages?limit=50&offset=0
+Authorization: Bearer <token>
+
+# Send message
+POST /api/dm/:channelId/messages
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{
+  "content": "Hey! Love coffee too!"
+}
+
+# Delete message
+DELETE /api/dm/messages/:messageId
+Authorization: Bearer <token>
+```
+
+---
+
 ## Middleware Usage
 
 ### Protect Message Routes
@@ -529,6 +721,15 @@ router.post('/pokes', rateLimitPoke(), async (req, res) => {
 - `join_tokens` - Barista-generated invitation tokens
 - `refresh_tokens` - JWT refresh token storage
 
+### Chat Tables (Component 2)
+- `messages` - Real-time chat messages with soft deletion
+
+### Interest Matching Tables (Component 4)
+- `user_interests` - User interest mappings for matching
+- `pokes` - Poke records with status and 24h expiration
+- `dm_channels` - Private direct message channels for matched users
+- `dm_messages` - DM message history
+
 ### Redis Keys (Component 3)
 ```
 # Rate Limiting
@@ -549,6 +750,8 @@ Database functions automatically clean up:
 - Expired join tokens (15min validity)
 - Expired badges (30 days)
 - Revoked refresh tokens
+- Old chat messages (7 days) - Component 2
+- Expired pokes (24 hours) - Component 4
 
 ## Configuration
 
@@ -668,14 +871,16 @@ npm run lint
 
 ## Future Enhancements
 
-- [ ] Socket.io real-time chat implementation (Component 2)
+- [x] ~~Socket.io real-time chat implementation (Component 2)~~ ✅ **DONE**
+- [x] ~~Interest matching & poke system (Component 4)~~ ✅ **DONE**
 - [ ] Claude AI agent integration (Component 5)
-- [ ] Interest matching & poke system (Component 4)
 - [ ] React Native mobile apps
 - [ ] Admin dashboard for cafe owners (Component 6)
-- [ ] Machine learning spam detection
+- [ ] Machine learning spam detection (enhance Component 3)
 - [ ] Analytics and insights
 - [ ] Multi-language support
+- [ ] Group chat rooms within cafes
+- [ ] Photo sharing in DMs
 
 ## Documentation
 
@@ -695,4 +900,4 @@ This is a private project. For questions or suggestions, please contact the deve
 ---
 
 **Last Updated**: 2025-11-19
-**Version**: 0.2.0 (Components 1 & 3 Implemented)
+**Version**: 0.4.0 (Components 1, 2, 3, 4 Implemented)

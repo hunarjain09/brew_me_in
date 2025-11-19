@@ -5,6 +5,8 @@ import { db } from './db/connection';
 import { connectRedis } from './db/redis';
 import { logger } from './config/logger';
 import { ChatHandler } from './socket/chatHandler';
+import notificationService from './services/notification.service';
+import { startPokeExpirationJob } from './jobs/poke-expiration.job';
 
 async function startServer() {
   try {
@@ -23,10 +25,17 @@ async function startServer() {
     // Create HTTP server
     const httpServer = createServer(app);
 
-    // Initialize Socket.io chat handler
+    // Initialize Component 2: Socket.io chat handler
     const chatHandler = new ChatHandler(httpServer);
-    logger.info('Socket.io chat handler initialized');
-    console.log('Socket.io chat handler initialized');
+    logger.info('Socket.io chat handler initialized (Component 2)');
+
+    // Initialize Component 4: Notification Service (Socket.IO)
+    notificationService.initialize(httpServer);
+    logger.info('Socket.io notification service initialized (Component 4)');
+
+    // Start Component 4: Poke expiration background job
+    startPokeExpirationJob();
+    logger.info('Poke expiration job started (Component 4)');
 
     // Start server
     httpServer.listen(config.port, () => {
@@ -50,42 +59,47 @@ API Endpoints:
   PUT    /api/users/me/interests
   PUT    /api/users/me/poke-enabled
 
-  [Badges]
+  [Badge System]
   POST   /api/badges/record-tip
   GET    /api/badges/status
 
-  [Real-time Chat]
+  [Real-time Chat - Component 2]
   GET    /api/chat/messages/:cafeId
+  POST   /api/chat/messages
   DELETE /api/chat/messages/:messageId
   GET    /api/chat/presence/:cafeId
-  GET    /api/chat/topics/:cafeId
 
-  [Rate Limiting & Spam Prevention]
+  [Rate Limiting - Component 3]
   GET    /api/v1/ratelimit/status
   POST   /api/v1/ratelimit/check
-  POST   /api/v1/ratelimit/consume
-  POST   /api/v1/ratelimit/reset
   POST   /api/v1/spam/check
-  GET    /api/v1/spam/mute/:userId
-  DELETE /api/v1/spam/mute/:userId
 
-  [Health Check]
+  [Interest Matching - Component 4]
+  GET    /api/matching/discover
+  POST   /api/matching/interests
+  POST   /api/matching/interests/add
+  POST   /api/matching/interests/remove
+
+  [Poke System - Component 4]
+  POST   /api/pokes/send
+  POST   /api/pokes/respond
+  GET    /api/pokes/pending
+  GET    /api/pokes/sent
+
+  [Direct Messaging - Component 4]
+  GET    /api/dm/channels
+  GET    /api/dm/:channelId/messages
+  POST   /api/dm/:channelId/messages
+  DELETE /api/dm/messages/:messageId
+
+  [Health]
   GET    /api/health
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Socket.io Events:
-  join:cafe, leave:cafe, message:send
-  typing:start, typing:stop, presence:update
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
       `);
-
-      logger.info('Server started successfully', {
-        port: config.port,
-        environment: config.env,
-        websocket: true,
-      });
+      logger.info(`Server listening on port ${config.port}`);
     });
   } catch (error) {
-    logger.error('Failed to start server', { error });
+    logger.error('Failed to start server:', error);
     console.error('Failed to start server:', error);
     process.exit(1);
   }
