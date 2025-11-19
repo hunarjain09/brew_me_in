@@ -1,8 +1,10 @@
+import { createServer } from 'http';
 import app from './app';
 import { config } from './config';
 import { db } from './db/connection';
 import { connectRedis } from './db/redis';
 import { logger } from './config/logger';
+import { ChatHandler } from './socket/chatHandler';
 
 async function startServer() {
   try {
@@ -18,8 +20,16 @@ async function startServer() {
     await connectRedis();
     logger.info('Redis connected successfully');
 
-    // Start Express server
-    app.listen(config.port, () => {
+    // Create HTTP server
+    const httpServer = createServer(app);
+
+    // Initialize Socket.io chat handler
+    const chatHandler = new ChatHandler(httpServer);
+    logger.info('Socket.io chat handler initialized');
+    console.log('Socket.io chat handler initialized');
+
+    // Start server
+    httpServer.listen(config.port, () => {
       console.log(`
 🚀 brew_me_in Backend Server Started
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -27,6 +37,7 @@ Environment: ${config.env}
 Port: ${config.port}
 Database: ${config.database.name}
 Redis: ${config.redis.host}:${config.redis.port}
+WebSocket: Enabled (Socket.io)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 API Endpoints:
   [Authentication]
@@ -43,6 +54,12 @@ API Endpoints:
   POST   /api/badges/record-tip
   GET    /api/badges/status
 
+  [Real-time Chat]
+  GET    /api/chat/messages/:cafeId
+  DELETE /api/chat/messages/:messageId
+  GET    /api/chat/presence/:cafeId
+  GET    /api/chat/topics/:cafeId
+
   [Rate Limiting & Spam Prevention]
   GET    /api/v1/ratelimit/status
   POST   /api/v1/ratelimit/check
@@ -55,11 +72,16 @@ API Endpoints:
   [Health Check]
   GET    /api/health
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Socket.io Events:
+  join:cafe, leave:cafe, message:send
+  typing:start, typing:stop, presence:update
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
       `);
 
       logger.info('Server started successfully', {
         port: config.port,
         environment: config.env,
+        websocket: true,
       });
     });
   } catch (error) {
