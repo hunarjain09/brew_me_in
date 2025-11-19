@@ -9,7 +9,7 @@ test.describe('Visual Regression Tests', () => {
     // Mock authentication state
     await page.goto('/');
     await page.evaluate(() => {
-      localStorage.setItem('auth_token', 'mock-jwt-token');
+      localStorage.setItem('token', 'mock-jwt-token');
       localStorage.setItem('moderator', JSON.stringify({
         id: 'test-mod-1',
         email: 'moderator@test.com',
