@@ -1,94 +1,92 @@
 import { Request, Response, NextFunction } from 'express';
-import Joi from 'joi';
+import { z, ZodSchema } from 'zod';
 
 /**
  * Validation Middleware
- * Validates request data using Joi schemas
+ * Validates request data using Zod schemas
  */
 
-export function validateBody(schema: Joi.ObjectSchema) {
+export const validate = (schema: ZodSchema) => {
   return (req: Request, res: Response, next: NextFunction): void => {
-    const { error } = schema.validate(req.body, {
-      abortEarly: false,
-      stripUnknown: true,
-    });
-
-    if (error) {
-      const errors = error.details.map(detail => ({
-        field: detail.path.join('.'),
-        message: detail.message,
-      }));
-
-      res.status(400).json({
-        error: 'Validation failed',
-        details: errors,
-      });
+    try {
+      schema.parse(req.body);
+      next();
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({
+          error: 'Validation failed',
+          details: error.errors.map((e) => ({
+            path: e.path.join('.'),
+            message: e.message,
+          })),
+        });
+        return;
+      }
+      res.status(500).json({ error: 'Validation error' });
       return;
     }
-
-    next();
   };
-}
+};
 
-export function validateParams(schema: Joi.ObjectSchema) {
-  return (req: Request, res: Response, next: NextFunction): void => {
-    const { error } = schema.validate(req.params);
-
-    if (error) {
-      res.status(400).json({
-        error: 'Invalid parameters',
-        details: error.details.map(d => d.message),
-      });
-      return;
-    }
-
-    next();
-  };
-}
-
-export function validateQuery(schema: Joi.ObjectSchema) {
-  return (req: Request, res: Response, next: NextFunction): void => {
-    const { error } = schema.validate(req.query);
-
-    if (error) {
-      res.status(400).json({
-        error: 'Invalid query parameters',
-        details: error.details.map(d => d.message),
-      });
-      return;
-    }
-
-    next();
-  };
-}
-
-// Common validation schemas
+// Common validation schemas (Component 1: Auth & User Management)
 export const schemas = {
-  agentQuery: Joi.object({
-    cafeId: Joi.string().required(),
-    question: Joi.string().min(1).max(500).required(),
-    userId: Joi.string().required(),
-    streaming: Joi.boolean().optional(),
+  generateUsername: z.object({
+    cafeId: z.string().uuid(),
+    receiptId: z.string().min(1).max(100),
   }),
 
-  agentConfig: Joi.object({
-    personality: Joi.string().valid('bartender', 'quirky', 'historian', 'sarcastic', 'professional', 'custom').optional(),
-    customPrompt: Joi.string().max(1000).optional(),
-    proactivity: Joi.string().valid('silent', 'occasional', 'active', 'hype').optional(),
-    enabledQueries: Joi.array().items(
-      Joi.string().valid('orders', 'stats', 'menu', 'events', 'community')
+  joinCafe: z.object({
+    username: z.string().min(3).max(50),
+    joinToken: z.string().min(1),
+    cafeId: z.string().uuid(),
+    wifiSsid: z.string().optional(),
+    latitude: z.number().optional(),
+    longitude: z.number().optional(),
+  }),
+
+  refreshToken: z.object({
+    refreshToken: z.string().min(1),
+  }),
+
+  recordTip: z.object({
+    userId: z.string().uuid(),
+    amount: z.number().positive(),
+  }),
+
+  updateInterests: z.object({
+    interests: z.array(z.string()).max(10),
+  }),
+
+  updatePokeEnabled: z.object({
+    enabled: z.boolean(),
+  }),
+
+  // Component 5: AI Agent Integration schemas
+  agentQuery: z.object({
+    cafeId: z.string().min(1),
+    question: z.string().min(1).max(500),
+    userId: z.string().min(1),
+    streaming: z.boolean().optional(),
+  }),
+
+  agentConfig: z.object({
+    personality: z.enum(['bartender', 'quirky', 'historian', 'sarcastic', 'professional', 'custom']).optional(),
+    customPrompt: z.string().max(1000).optional(),
+    proactivity: z.enum(['silent', 'occasional', 'active', 'hype']).optional(),
+    enabledQueries: z.array(
+      z.enum(['orders', 'stats', 'menu', 'events', 'community'])
     ).optional(),
-    maxTokens: Joi.number().min(50).max(1000).optional(),
-    temperature: Joi.number().min(0).max(1).optional(),
+    maxTokens: z.number().min(50).max(1000).optional(),
+    temperature: z.number().min(0).max(1).optional(),
   }),
 
-  cafeId: Joi.object({
-    cafeId: Joi.string().required(),
+  cafeId: z.object({
+    cafeId: z.string().min(1),
   }),
 
-  proactiveMessage: Joi.object({
-    cafeId: Joi.string().required(),
-    trigger: Joi.string().valid('event', 'milestone', 'scheduled', 'manual').required(),
-    metadata: Joi.object().optional(),
+  proactiveMessage: z.object({
+    cafeId: z.string().min(1),
+    trigger: z.enum(['event', 'milestone', 'scheduled', 'manual']),
+    metadata: z.record(z.any()).optional(),
   }),
 };

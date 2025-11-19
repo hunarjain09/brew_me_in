@@ -2,6 +2,9 @@
 node_modules/
 backend/node_modules/
 frontend/node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
 
 # Environment variables
 .env
@@ -15,13 +18,15 @@ dist/
 build/
 backend/dist/
 frontend/build/
+*.tsbuildinfo
+
+# Database
+*.db
+*.sqlite
 
 # Logs
 logs/
 *.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
 
 # IDE
 .vscode/
@@ -41,5 +46,6 @@ coverage/
 .cache/
 .parcel-cache/
 
-# TypeScript
-*.tsbuildinfo
+# Temporary files
+tmp/
+temp/
