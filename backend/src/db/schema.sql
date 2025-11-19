@@ -140,6 +140,36 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+-- Messages table (for real-time chat)
+CREATE TABLE IF NOT EXISTS messages (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID REFERENCES users(id) ON DELETE SET NULL,
+  username VARCHAR(50) NOT NULL,
+  cafe_id UUID NOT NULL REFERENCES cafes(id) ON DELETE CASCADE,
+  content TEXT NOT NULL,
+  message_type VARCHAR(20) DEFAULT 'user' CHECK (message_type IN ('user', 'agent', 'system', 'barista')),
+  metadata JSONB,
+  created_at TIMESTAMP DEFAULT NOW(),
+  deleted_at TIMESTAMP
+);
+
+-- Indexes for messages
+CREATE INDEX IF NOT EXISTS idx_messages_cafe_created ON messages(cafe_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_messages_user ON messages(user_id);
+CREATE INDEX IF NOT EXISTS idx_messages_deleted ON messages(deleted_at) WHERE deleted_at IS NULL;
+
+-- Function to clean up old messages (keep last 7 days)
+CREATE OR REPLACE FUNCTION cleanup_old_messages()
+RETURNS INTEGER AS $$
+DECLARE
+  deleted_count INTEGER;
+BEGIN
+  DELETE FROM messages WHERE created_at < NOW() - INTERVAL '7 days';
+  GET DIAGNOSTICS deleted_count = ROW_COUNT;
+  RETURN deleted_count;
+END;
+$$ LANGUAGE plpgsql;
+
 -- Insert sample cafe data for testing
 INSERT INTO cafes (name, wifi_ssid, latitude, longitude, geofence_radius)
 VALUES
