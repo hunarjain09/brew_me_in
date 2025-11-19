@@ -1,7 +1,7 @@
 {
   "name": "brew-me-in-backend",
   "version": "1.0.0",
-  "description": "Backend API for brew_me_in - cafe-based social networking with rate limiting and spam prevention",
+  "description": "Backend API for brew_me_in - cafe social networking with AI agent integration, chat, poke system, and spam prevention",
   "main": "dist/index.js",
   "scripts": {
     "dev": "nodemon src/index.ts",
@@ -13,10 +13,11 @@
     "test": "jest",
     "test:watch": "jest --watch"
   },
-  "keywords": ["cafe", "social", "networking", "chat", "real-time", "location-based"],
+  "keywords": ["cafe", "social", "networking", "ai", "claude", "chat", "real-time", "poke"],
   "author": "",
   "license": "MIT",
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.27.0",
     "express": "^4.18.2",
     "socket.io": "^4.6.1",
     "pg": "^8.11.3",

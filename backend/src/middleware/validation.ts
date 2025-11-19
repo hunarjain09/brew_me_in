@@ -1,6 +1,11 @@
 import { Request, Response, NextFunction } from 'express';
 import { z, ZodSchema } from 'zod';
 
+/**
+ * Validation Middleware
+ * Validates request data using Zod schemas
+ */
+
 export const validate = (schema: ZodSchema) => {
   return (req: Request, res: Response, next: NextFunction): void => {
     try {
@@ -23,7 +28,7 @@ export const validate = (schema: ZodSchema) => {
   };
 };
 
-// Common validation schemas
+// Common validation schemas (Component 1: Auth & User Management)
 export const schemas = {
   generateUsername: z.object({
     cafeId: z.string().uuid(),
@@ -54,5 +59,34 @@ export const schemas = {
 
   updatePokeEnabled: z.object({
     enabled: z.boolean(),
+  }),
+
+  // Component 5: AI Agent Integration schemas
+  agentQuery: z.object({
+    cafeId: z.string().min(1),
+    question: z.string().min(1).max(500),
+    userId: z.string().min(1),
+    streaming: z.boolean().optional(),
+  }),
+
+  agentConfig: z.object({
+    personality: z.enum(['bartender', 'quirky', 'historian', 'sarcastic', 'professional', 'custom']).optional(),
+    customPrompt: z.string().max(1000).optional(),
+    proactivity: z.enum(['silent', 'occasional', 'active', 'hype']).optional(),
+    enabledQueries: z.array(
+      z.enum(['orders', 'stats', 'menu', 'events', 'community'])
+    ).optional(),
+    maxTokens: z.number().min(50).max(1000).optional(),
+    temperature: z.number().min(0).max(1).optional(),
+  }),
+
+  cafeId: z.object({
+    cafeId: z.string().min(1),
+  }),
+
+  proactiveMessage: z.object({
+    cafeId: z.string().min(1),
+    trigger: z.enum(['event', 'milestone', 'scheduled', 'manual']),
+    metadata: z.record(z.any()).optional(),
   }),
 };

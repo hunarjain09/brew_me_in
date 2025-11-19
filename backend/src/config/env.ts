@@ -63,9 +63,16 @@ const envSchema = z.object({
   LOG_LEVEL: z.enum(['error', 'warn', 'info', 'debug']).default('info'),
   LOG_FORMAT: z.enum(['json', 'simple']).default('json'),
 
-  // Anthropic
+  // Anthropic Claude API (Component 5)
   ANTHROPIC_API_KEY: z.string().optional(),
-  ANTHROPIC_MODEL: z.string().default('claude-3-sonnet-20240229'),
+  ANTHROPIC_MODEL: z.string().default('claude-sonnet-4-20250514'),
+  ANTHROPIC_API_VERSION: z.string().default('2023-06-01'),
+
+  // AI Agent Cache Configuration (Component 5)
+  AGENT_CACHE_TTL: z.string().transform(Number).default('3600'),
+  COMMON_QUERIES_CACHE_TTL: z.string().transform(Number).default('7200'),
+  GLOBAL_RATE_LIMIT_MS: z.string().transform(Number).default('2000'),
+  USER_RATE_LIMIT_DAILY: z.string().transform(Number).default('100'),
 });
 
 // Parse and validate environment variables
@@ -139,6 +146,14 @@ export const config = {
   anthropic: {
     apiKey: env.ANTHROPIC_API_KEY,
     model: env.ANTHROPIC_MODEL,
+    apiVersion: env.ANTHROPIC_API_VERSION,
+  },
+  // Component 5: AI Agent specific settings
+  agent: {
+    cacheTTL: env.AGENT_CACHE_TTL,
+    commonQueriesCacheTTL: env.COMMON_QUERIES_CACHE_TTL,
+    globalRateLimitMs: env.GLOBAL_RATE_LIMIT_MS,
+    userRateLimitDaily: env.USER_RATE_LIMIT_DAILY,
   },
 } as const;
 

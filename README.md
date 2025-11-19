@@ -19,7 +19,7 @@ brew_me_in creates ephemeral social experiences within coffee shops by:
 - **Component 2 (Real-time Chat)**: ✅ IMPLEMENTED
 - **Component 3 (Rate Limiting & Spam Prevention)**: ✅ IMPLEMENTED
 - **Component 4 (Interest Matching & Poke System)**: ✅ IMPLEMENTED
-- **Component 5 (AI Agent Integration)**: 🚧 PLANNED
+- **Component 5 (AI Agent Integration)**: ✅ IMPLEMENTED
 - **Component 6 (Admin Dashboard)**: 🚧 PLANNED
 - **Component 7 (Network Validation)**: ✅ IMPLEMENTED
 - **Component 8 (Background Jobs)**: ⚡ PARTIAL (Poke expiration implemented)
@@ -31,8 +31,8 @@ brew_me_in creates ephemeral social experiences within coffee shops by:
 - **Framework**: Express.js
 - **Database**: PostgreSQL 14+ (user data, chat history)
 - **Cache**: Redis 7+ (sessions, rate limiting, real-time)
-- **Real-time**: Socket.io (WebSocket connections) - Planned
-- **AI**: Anthropic Claude API - Planned
+- **Real-time**: Socket.io (WebSocket connections)
+- **AI**: Anthropic Claude API (Claude Sonnet 4.5)
 - **Authentication**: JWT tokens
 - **Logging**: Winston (structured JSON logs)
 - **Validation**: Zod schemas
@@ -80,8 +80,11 @@ brew_me_in/
 │   │   │   ├── rateLimitRoutes.ts      # Component 3
 │   │   │   └── index.ts
 │   │   ├── services/       # Business logic services
-│   │   │   ├── rateLimitService.ts     # Component 3
-│   │   │   └── spamDetectionService.ts # Component 3
+│   │   │   ├── claude-agent.service.ts  # Component 5
+│   │   │   ├── prompt-builder.service.ts # Component 5
+│   │   │   ├── redis-cache.service.ts   # Component 5
+│   │   │   ├── rateLimitService.ts      # Component 3
+│   │   │   └── spamDetectionService.ts  # Component 3
 │   │   ├── types/          # TypeScript types
 │   │   │   ├── index.ts
 │   │   │   ├── api.ts                  # Component 3
@@ -900,4 +903,35 @@ This is a private project. For questions or suggestions, please contact the deve
 ---
 
 **Last Updated**: 2025-11-19
-**Version**: 0.4.0 (Components 1, 2, 3, 4 Implemented)
+**Version**: 0.5.0 (Components 1, 2, 3, 4, 5 Implemented)
+
+### 5. AI Agent Integration (Component 5)
+
+#### Claude API Integration
+- **Powered by Claude Sonnet 4.5**: Advanced AI responses
+- **6 Personality Types**: Bartender, Quirky, Historian, Sarcastic, Professional, Custom
+- **Context-Aware**: Agent knows cafe stats, popular orders, peak hours, community interests
+- **Streaming Responses**: Real-time response streaming via Socket.IO
+- **Smart Caching**: Redis-based caching with 1-hour TTL
+- **Rate Limiting**: 2-second global cooldown + 100 queries/day per user
+- **Fallback Handling**: Graceful degradation when API unavailable
+- **Query Analytics**: Track popular questions, response times, cache hit rates
+
+#### AI Personality Types
+1. **Bartender** - Warm, attentive, professional
+2. **Quirky** - Playful, enthusiastic, frequent emojis
+3. **Historian** - Educational, shares coffee facts
+4. **Sarcastic** - Witty, dry humor
+5. **Professional** - Efficient, direct
+6. **Custom** - User-defined personality with custom prompt
+
+#### Caching Strategy
+- **Query Cache**: `agent:cache:{cafeId}:{questionHash}` (1h TTL)
+- **Analytics**: Total queries, response times, cache hits, popular questions
+- **Pre-generation**: Common questions pre-cached for instant responses
+
+#### Socket.IO Events (Namespace: `/agent`)
+- `query:stream` - Start streaming query
+- `cafe:join` - Join cafe room for proactive messages
+- `cafe:leave` - Leave cafe room
+- Listeners: `query:start`, `query:chunk`, `query:complete`, `query:error`, `proactive:message`
