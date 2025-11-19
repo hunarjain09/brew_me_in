@@ -1,1 +1,378 @@
 # brew_me_in
+
+A location-based social networking app for coffee shops, enabling temporary connections and AI-powered conversations between cafe visitors.
+
+## Overview
+
+brew_me_in creates ephemeral social experiences within coffee shops by:
+- Generating temporary usernames for customers upon purchase
+- Enabling real-time chat with AI agent assistance
+- Rewarding regular customers with badges and perks
+- Validating physical presence through WiFi/geofencing
+
+## Tech Stack
+
+### Backend
+- **Runtime**: Node.js with TypeScript
+- **Framework**: Express.js
+- **Database**: PostgreSQL (user data, chat history)
+- **Cache**: Redis (sessions, rate limiting)
+- **Real-time**: Socket.io (WebSocket connections)
+- **AI**: Anthropic Claude API
+- **Authentication**: JWT tokens
+
+### Frontend
+- React Native (iOS/Android)
+- React Web
+- Socket.io Client
+
+## Project Structure
+
+```
+brew_me_in/
+├── backend/
+│   ├── src/
+│   │   ├── config/         # Configuration management
+│   │   ├── controllers/    # Request handlers
+│   │   ├── db/            # Database connections and schemas
+│   │   ├── middleware/    # Express middleware
+│   │   ├── models/        # Data models
+│   │   ├── routes/        # API routes
+│   │   ├── utils/         # Utilities (JWT, validation)
+│   │   ├── types/         # TypeScript types
+│   │   ├── app.ts         # Express app setup
+│   │   └── index.ts       # Server entry point
+│   ├── package.json
+│   └── tsconfig.json
+└── README.md
+```
+
+## Getting Started
+
+### Prerequisites
+
+- Node.js 18+
+- PostgreSQL 14+
+- Redis 7+
+- npm or yarn
+
+### Backend Setup
+
+1. **Navigate to backend directory**
+   ```bash
+   cd backend
+   ```
+
+2. **Install dependencies**
+   ```bash
+   npm install
+   ```
+
+3. **Configure environment**
+   ```bash
+   cp .env.example .env
+   ```
+
+   Edit `.env` with your configuration:
+   - Database credentials
+   - Redis connection
+   - JWT secrets
+   - Anthropic API key
+
+4. **Set up database**
+
+   Create PostgreSQL database:
+   ```bash
+   createdb brew_me_in
+   ```
+
+   Run migrations:
+   ```bash
+   npm run migrate
+   ```
+
+5. **Start development server**
+   ```bash
+   npm run dev
+   ```
+
+The server will start on `http://localhost:3000`
+
+### Production Build
+
+```bash
+npm run build
+npm start
+```
+
+## API Documentation
+
+### Authentication Endpoints
+
+#### Generate Username (Barista)
+```http
+POST /api/auth/barista/generate-username
+Content-Type: application/json
+
+{
+  "cafeId": "uuid",
+  "receiptId": "string"
+}
+
+Response:
+{
+  "username": "HappyOtter42",
+  "joinToken": "token-string",
+  "expiresAt": "2024-01-01T12:00:00Z"
+}
+```
+
+#### Join Cafe (Customer)
+```http
+POST /api/auth/join
+Content-Type: application/json
+
+{
+  "username": "HappyOtter42",
+  "joinToken": "token-string",
+  "cafeId": "uuid",
+  "wifiSsid": "CafeWiFi-Guest",  // Optional
+  "latitude": 37.7749,            // Optional
+  "longitude": -122.4194          // Optional
+}
+
+Response:
+{
+  "accessToken": "jwt-token",
+  "refreshToken": "jwt-refresh-token",
+  "user": { ... }
+}
+```
+
+#### Refresh Token
+```http
+POST /api/auth/refresh
+Content-Type: application/json
+
+{
+  "refreshToken": "jwt-refresh-token"
+}
+
+Response:
+{
+  "accessToken": "new-jwt-token",
+  "user": { ... }
+}
+```
+
+### User Endpoints
+
+All user endpoints require `Authorization: Bearer <token>` header.
+
+#### Get Current User
+```http
+GET /api/users/me
+
+Response:
+{
+  "user": {
+    "id": "uuid",
+    "username": "HappyOtter42",
+    "cafeId": "uuid",
+    "badgeStatus": "active",
+    "tipCount": 7,
+    ...
+  }
+}
+```
+
+#### Update Interests
+```http
+PUT /api/users/me/interests
+Content-Type: application/json
+
+{
+  "interests": ["coffee", "tech", "music"]
+}
+```
+
+#### Toggle Poke Feature
+```http
+PUT /api/users/me/poke-enabled
+Content-Type: application/json
+
+{
+  "enabled": true
+}
+```
+
+### Badge Endpoints
+
+#### Record Tip
+```http
+POST /api/badges/record-tip
+Content-Type: application/json
+
+{
+  "userId": "uuid",
+  "amount": 5.00
+}
+
+Response:
+{
+  "tip": { ... },
+  "eligibility": {
+    "eligible": true,
+    "tipsInWindow": 5,
+    "tipsNeeded": 0
+  },
+  "badge": { ... }
+}
+```
+
+#### Get Badge Status
+```http
+GET /api/badges/status
+Authorization: Bearer <token>
+
+Response:
+{
+  "hasBadge": true,
+  "badgeStatus": "active",
+  "eligibility": {
+    "tipsInWindow": 7,
+    "tipsNeeded": 0,
+    "tipThreshold": 5,
+    "windowDays": 7
+  },
+  "perks": ["Priority in chat", "Extended session", ...]
+}
+```
+
+## Features
+
+### 1. User Management & Authentication
+- **Temporary Usernames**: 24-hour session-based usernames
+- **Barista Portal**: Receipt-to-username mapping
+- **Network Validation**: WiFi SSID + Geofencing fallback
+- **JWT Authentication**: Access and refresh tokens
+
+### 2. Badge System
+- **Criteria**: 5 tips within 7 days
+- **Duration**: 30-day badge validity
+- **Perks**: Priority features, extended sessions
+- **Tracking**: Automatic tip counting and badge assignment
+
+### 3. Security Features
+- Rate limiting on all endpoints
+- JWT token rotation
+- Network-based authentication
+- SQL injection prevention
+- XSS protection via Helmet.js
+
+## Database Schema
+
+### Core Tables
+- `cafes` - Cafe information and WiFi networks
+- `users` - Temporary user accounts (24h expiration)
+- `badges` - User badge status and eligibility
+- `tips` - Tip tracking for badge system
+- `join_tokens` - Barista-generated invitation tokens
+- `refresh_tokens` - JWT refresh token storage
+
+### Automatic Cleanup
+Database functions automatically clean up:
+- Expired users (24h sessions)
+- Expired join tokens (15min validity)
+- Expired badges (30 days)
+- Revoked refresh tokens
+
+## Configuration
+
+Key environment variables:
+
+```env
+# Server
+PORT=3000
+NODE_ENV=development
+
+# Database
+DATABASE_URL=postgresql://user:pass@localhost:5432/brew_me_in
+
+# Redis
+REDIS_HOST=localhost
+REDIS_PORT=6379
+
+# JWT
+JWT_SECRET=your-secret-here
+JWT_EXPIRES_IN=24h
+
+# Badge Settings
+BADGE_TIP_THRESHOLD=5
+BADGE_TIP_WINDOW_DAYS=7
+BADGE_DURATION_DAYS=30
+
+# User Settings
+USER_SESSION_DURATION_HOURS=24
+```
+
+## Development Workflow
+
+### Running Migrations
+```bash
+npm run migrate
+```
+
+### Development Mode
+```bash
+npm run dev
+```
+
+### Building for Production
+```bash
+npm run build
+```
+
+### Linting
+```bash
+npm run lint
+```
+
+## Architecture Decisions
+
+### Why PostgreSQL?
+- ACID compliance for user/transaction data
+- Complex queries for badge eligibility
+- Reliable data integrity
+
+### Why Redis?
+- Fast session storage
+- Distributed rate limiting
+- Real-time pub/sub for Socket.io scaling
+
+### Why JWT?
+- Stateless authentication
+- Mobile-friendly
+- Easy token rotation
+
+### Network Validation Strategy
+1. **Primary**: WiFi SSID matching (most reliable)
+2. **Fallback**: GPS geofencing (when WiFi unavailable)
+3. **Radius**: Configurable per-cafe (default 100m)
+
+## Future Enhancements
+
+- [ ] Socket.io real-time chat implementation
+- [ ] Claude AI agent integration
+- [ ] React Native mobile apps
+- [ ] Admin dashboard for cafe owners
+- [ ] Analytics and insights
+- [ ] Multi-language support
+
+## License
+
+MIT
+
+## Contributing
+
+This is a private project. For questions or suggestions, please contact the development team.
