@@ -146,3 +146,128 @@ VALUES
   ('Downtown Brew', 'DowntownBrew-Guest', 37.7749, -122.4194, 50),
   ('Eastside Coffee', 'EastsideCoffee-WiFi', 37.7849, -122.4094, 75)
 ON CONFLICT (wifi_ssid) DO NOTHING;
+
+-- ================================================================
+-- COMPONENT 6: MODERATOR DASHBOARD & ADMIN TOOLS
+-- ================================================================
+
+-- Moderators table (cafe owners and moderators)
+CREATE TABLE IF NOT EXISTS moderators (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  cafe_id UUID REFERENCES cafes(id) ON DELETE CASCADE,
+  email VARCHAR(255) UNIQUE NOT NULL,
+  password_hash VARCHAR(255) NOT NULL,
+  role VARCHAR(20) NOT NULL CHECK (role IN ('owner', 'moderator')),
+  permissions TEXT[] DEFAULT '{}',
+  created_at TIMESTAMP DEFAULT NOW(),
+  updated_at TIMESTAMP DEFAULT NOW()
+);
+
+-- Moderation actions log
+CREATE TABLE IF NOT EXISTS moderation_actions (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  moderator_id UUID REFERENCES moderators(id) ON DELETE SET NULL,
+  target_user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+  action VARCHAR(50) NOT NULL CHECK (action IN ('mute', 'delete_message', 'warn', 'ban', 'unmute', 'unban')),
+  reason TEXT,
+  duration INTEGER, -- Duration in minutes (for mute/ban)
+  metadata JSONB DEFAULT '{}',
+  created_at TIMESTAMP DEFAULT NOW()
+);
+
+-- Messages table (for chat and moderation)
+CREATE TABLE IF NOT EXISTS messages (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  cafe_id UUID REFERENCES cafes(id) ON DELETE CASCADE,
+  user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+  content TEXT NOT NULL,
+  message_type VARCHAR(50) DEFAULT 'chat',
+  deleted_at TIMESTAMP,
+  created_at TIMESTAMP DEFAULT NOW()
+);
+
+-- Cafe analytics (daily aggregated stats)
+CREATE TABLE IF NOT EXISTS cafe_analytics (
+  cafe_id UUID REFERENCES cafes(id) ON DELETE CASCADE,
+  date DATE NOT NULL,
+  total_messages INTEGER DEFAULT 0,
+  unique_users INTEGER DEFAULT 0,
+  peak_hour INTEGER,
+  agent_queries INTEGER DEFAULT 0,
+  pokes_exchanged INTEGER DEFAULT 0,
+  badges_earned INTEGER DEFAULT 0,
+  PRIMARY KEY (cafe_id, date)
+);
+
+-- Agent queries log
+CREATE TABLE IF NOT EXISTS agent_queries (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  cafe_id UUID REFERENCES cafes(id) ON DELETE CASCADE,
+  user_id UUID REFERENCES users(id) ON DELETE SET NULL,
+  query TEXT NOT NULL,
+  response TEXT,
+  agent_type VARCHAR(50),
+  processing_time_ms INTEGER,
+  created_at TIMESTAMP DEFAULT NOW()
+);
+
+-- Agent configuration (per cafe)
+CREATE TABLE IF NOT EXISTS agent_config (
+  cafe_id UUID PRIMARY KEY REFERENCES cafes(id) ON DELETE CASCADE,
+  config JSONB NOT NULL DEFAULT '{
+    "enabled": true,
+    "responseTime": "fast",
+    "personality": "friendly",
+    "specializations": []
+  }',
+  updated_at TIMESTAMP DEFAULT NOW()
+);
+
+-- Cafe events
+CREATE TABLE IF NOT EXISTS cafe_events (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  cafe_id UUID REFERENCES cafes(id) ON DELETE CASCADE,
+  name VARCHAR(255) NOT NULL,
+  description TEXT,
+  event_date TIMESTAMP NOT NULL,
+  created_by UUID REFERENCES moderators(id) ON DELETE SET NULL,
+  created_at TIMESTAMP DEFAULT NOW()
+);
+
+-- Indexes for moderator dashboard
+CREATE INDEX IF NOT EXISTS idx_moderators_cafe ON moderators(cafe_id);
+CREATE INDEX IF NOT EXISTS idx_moderators_email ON moderators(email);
+CREATE INDEX IF NOT EXISTS idx_moderation_user ON moderation_actions(target_user_id);
+CREATE INDEX IF NOT EXISTS idx_moderation_moderator ON moderation_actions(moderator_id);
+CREATE INDEX IF NOT EXISTS idx_moderation_created ON moderation_actions(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_messages_cafe ON messages(cafe_id);
+CREATE INDEX IF NOT EXISTS idx_messages_user ON messages(user_id);
+CREATE INDEX IF NOT EXISTS idx_messages_created ON messages(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_analytics_cafe_date ON cafe_analytics(cafe_id, date DESC);
+CREATE INDEX IF NOT EXISTS idx_agent_queries_cafe ON agent_queries(cafe_id);
+CREATE INDEX IF NOT EXISTS idx_agent_queries_created ON agent_queries(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_events_cafe ON cafe_events(cafe_id);
+CREATE INDEX IF NOT EXISTS idx_events_date ON cafe_events(event_date);
+
+-- Triggers for moderators updated_at
+CREATE TRIGGER update_moderators_updated_at
+  BEFORE UPDATE ON moderators
+  FOR EACH ROW
+  EXECUTE FUNCTION update_updated_at_column();
+
+-- Triggers for agent_config updated_at
+CREATE TRIGGER update_agent_config_updated_at
+  BEFORE UPDATE ON agent_config
+  FOR EACH ROW
+  EXECUTE FUNCTION update_updated_at_column();
+
+-- Insert sample moderator for testing (password: admin123)
+INSERT INTO moderators (cafe_id, email, password_hash, role, permissions)
+SELECT
+  id,
+  'admin@downtownbrew.com',
+  '$2b$10$rKZvqJYxKxLZGxGxGxGxGeHZQqFqKNJqYxLZGxGxGxGxGxGxGxGxGa',
+  'owner',
+  ARRAY['all']
+FROM cafes WHERE name = 'Downtown Brew'
+ON CONFLICT (email) DO NOTHING;
