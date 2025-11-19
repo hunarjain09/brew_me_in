@@ -31,6 +31,9 @@ export default defineConfig({
     navigationTimeout: 15000,
   },
 
+  /* Use platform-agnostic snapshot names to work across macOS, Linux, and Windows */
+  snapshotPathTemplate: '{testDir}/{testFileDir}/{testFileName}-snapshots/{arg}{ext}',
+
   /* Configure projects for major browsers */
   projects: [
     {
