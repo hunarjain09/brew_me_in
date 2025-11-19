@@ -1,66 +1,160 @@
 import dotenv from 'dotenv';
+import { z } from 'zod';
 
+// Load environment variables
 dotenv.config();
 
-/**
- * Environment Configuration
- * Validates and exports environment variables with type safety
- */
-
-interface EnvConfig {
+// Environment variable schema
+const envSchema = z.object({
   // Server
-  PORT: number;
-  NODE_ENV: string;
-  FRONTEND_URL: string;
+  NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
+  PORT: z.string().transform(Number).default('3000'),
+  API_VERSION: z.string().default('v1'),
+
+  // Database
+  DB_HOST: z.string().default('localhost'),
+  DB_PORT: z.string().transform(Number).default('5432'),
+  DB_NAME: z.string().default('brew_me_in'),
+  DB_USER: z.string().default('postgres'),
+  DB_PASSWORD: z.string().default('postgres'),
 
   // Redis
-  REDIS_HOST: string;
-  REDIS_PORT: number;
-  REDIS_PASSWORD?: string;
+  REDIS_HOST: z.string().default('localhost'),
+  REDIS_PORT: z.string().transform(Number).default('6379'),
+  REDIS_PASSWORD: z.string().optional().default(''),
+  REDIS_DB: z.string().transform(Number).default('0'),
 
-  // Claude API
-  ANTHROPIC_API_KEY: string;
-  ANTHROPIC_API_VERSION: string;
+  // JWT
+  JWT_SECRET: z.string().min(1),
+  JWT_EXPIRES_IN: z.string().default('7d'),
+
+  // CORS
+  CORS_ORIGIN: z.string().default('http://localhost:3001'),
 
   // Rate Limiting
-  GLOBAL_RATE_LIMIT_MS: number;
-  USER_RATE_LIMIT_DAILY: number;
+  RATE_LIMIT_ENABLED: z.string().transform(v => v === 'true').default('true'),
 
-  // Cache
-  AGENT_CACHE_TTL: number;
-  COMMON_QUERIES_CACHE_TTL: number;
-}
+  // Message Rate Limits (Free)
+  RATE_LIMIT_MESSAGE_FREE_COUNT: z.string().transform(Number).default('30'),
+  RATE_LIMIT_MESSAGE_FREE_WINDOW: z.string().transform(Number).default('3600'),
+  RATE_LIMIT_MESSAGE_FREE_COOLDOWN: z.string().transform(Number).default('30'),
 
-function validateEnv(): EnvConfig {
-  const required = [
-    'ANTHROPIC_API_KEY',
-    'REDIS_HOST'
-  ];
+  // Message Rate Limits (Badge)
+  RATE_LIMIT_MESSAGE_BADGE_COUNT: z.string().transform(Number).default('60'),
+  RATE_LIMIT_MESSAGE_BADGE_WINDOW: z.string().transform(Number).default('3600'),
+  RATE_LIMIT_MESSAGE_BADGE_COOLDOWN: z.string().transform(Number).default('15'),
 
-  const missing = required.filter(key => !process.env[key]);
+  // Agent Rate Limits
+  RATE_LIMIT_AGENT_PERSONAL_COUNT: z.string().transform(Number).default('2'),
+  RATE_LIMIT_AGENT_GLOBAL_COOLDOWN: z.string().transform(Number).default('120'),
 
-  if (missing.length > 0) {
-    throw new Error(`Missing required environment variables: ${missing.join(', ')}`);
-  }
+  // Poke Rate Limits
+  RATE_LIMIT_POKE_COUNT: z.string().transform(Number).default('5'),
+  RATE_LIMIT_POKE_WINDOW: z.string().transform(Number).default('86400'),
 
-  return {
-    PORT: parseInt(process.env.PORT || '3000', 10),
-    NODE_ENV: process.env.NODE_ENV || 'development',
-    FRONTEND_URL: process.env.FRONTEND_URL || 'http://localhost:3001',
+  // Spam Detection
+  SPAM_DETECTION_ENABLED: z.string().transform(v => v === 'true').default('true'),
+  SPAM_DUPLICATE_WINDOW: z.string().transform(Number).default('300'),
+  SPAM_MAX_CAPS_PERCENTAGE: z.string().transform(Number).default('50'),
+  SPAM_MAX_URLS: z.string().transform(Number).default('2'),
+  SPAM_MUTE_DURATION: z.string().transform(Number).default('86400'),
 
-    REDIS_HOST: process.env.REDIS_HOST!,
-    REDIS_PORT: parseInt(process.env.REDIS_PORT || '6379', 10),
-    REDIS_PASSWORD: process.env.REDIS_PASSWORD,
+  // Logging
+  LOG_LEVEL: z.enum(['error', 'warn', 'info', 'debug']).default('info'),
+  LOG_FORMAT: z.enum(['json', 'simple']).default('json'),
 
-    ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY!,
-    ANTHROPIC_API_VERSION: process.env.ANTHROPIC_API_VERSION || '2023-06-01',
+  // Anthropic Claude API (Component 5)
+  ANTHROPIC_API_KEY: z.string().optional(),
+  ANTHROPIC_MODEL: z.string().default('claude-sonnet-4-20250514'),
+  ANTHROPIC_API_VERSION: z.string().default('2023-06-01'),
 
-    GLOBAL_RATE_LIMIT_MS: parseInt(process.env.GLOBAL_RATE_LIMIT_MS || '2000', 10),
-    USER_RATE_LIMIT_DAILY: parseInt(process.env.USER_RATE_LIMIT_DAILY || '100', 10),
+  // AI Agent Cache Configuration (Component 5)
+  AGENT_CACHE_TTL: z.string().transform(Number).default('3600'),
+  COMMON_QUERIES_CACHE_TTL: z.string().transform(Number).default('7200'),
+  GLOBAL_RATE_LIMIT_MS: z.string().transform(Number).default('2000'),
+  USER_RATE_LIMIT_DAILY: z.string().transform(Number).default('100'),
+});
 
-    AGENT_CACHE_TTL: parseInt(process.env.AGENT_CACHE_TTL || '3600', 10),
-    COMMON_QUERIES_CACHE_TTL: parseInt(process.env.COMMON_QUERIES_CACHE_TTL || '7200', 10)
-  };
-}
+// Parse and validate environment variables
+const env = envSchema.parse(process.env);
 
-export const config = validateEnv();
+// Export validated config
+export const config = {
+  server: {
+    env: env.NODE_ENV,
+    port: env.PORT,
+    apiVersion: env.API_VERSION,
+  },
+  database: {
+    host: env.DB_HOST,
+    port: env.DB_PORT,
+    name: env.DB_NAME,
+    user: env.DB_USER,
+    password: env.DB_PASSWORD,
+  },
+  redis: {
+    host: env.REDIS_HOST,
+    port: env.REDIS_PORT,
+    password: env.REDIS_PASSWORD,
+    db: env.REDIS_DB,
+  },
+  jwt: {
+    secret: env.JWT_SECRET,
+    expiresIn: env.JWT_EXPIRES_IN,
+  },
+  cors: {
+    origin: env.CORS_ORIGIN,
+  },
+  rateLimit: {
+    enabled: env.RATE_LIMIT_ENABLED,
+    message: {
+      free: {
+        count: env.RATE_LIMIT_MESSAGE_FREE_COUNT,
+        window: env.RATE_LIMIT_MESSAGE_FREE_WINDOW,
+        cooldown: env.RATE_LIMIT_MESSAGE_FREE_COOLDOWN,
+      },
+      badgeHolder: {
+        count: env.RATE_LIMIT_MESSAGE_BADGE_COUNT,
+        window: env.RATE_LIMIT_MESSAGE_BADGE_WINDOW,
+        cooldown: env.RATE_LIMIT_MESSAGE_BADGE_COOLDOWN,
+      },
+    },
+    agent: {
+      personal: {
+        count: env.RATE_LIMIT_AGENT_PERSONAL_COUNT,
+      },
+      global: {
+        cooldown: env.RATE_LIMIT_AGENT_GLOBAL_COOLDOWN,
+      },
+    },
+    poke: {
+      count: env.RATE_LIMIT_POKE_COUNT,
+      window: env.RATE_LIMIT_POKE_WINDOW,
+    },
+  },
+  spam: {
+    enabled: env.SPAM_DETECTION_ENABLED,
+    duplicateWindow: env.SPAM_DUPLICATE_WINDOW,
+    maxCapsPercentage: env.SPAM_MAX_CAPS_PERCENTAGE,
+    maxUrls: env.SPAM_MAX_URLS,
+    muteDuration: env.SPAM_MUTE_DURATION,
+  },
+  logging: {
+    level: env.LOG_LEVEL,
+    format: env.LOG_FORMAT,
+  },
+  anthropic: {
+    apiKey: env.ANTHROPIC_API_KEY,
+    model: env.ANTHROPIC_MODEL,
+    apiVersion: env.ANTHROPIC_API_VERSION,
+  },
+  // Component 5: AI Agent specific settings
+  agent: {
+    cacheTTL: env.AGENT_CACHE_TTL,
+    commonQueriesCacheTTL: env.COMMON_QUERIES_CACHE_TTL,
+    globalRateLimitMs: env.GLOBAL_RATE_LIMIT_MS,
+    userRateLimitDaily: env.USER_RATE_LIMIT_DAILY,
+  },
+} as const;
+
+export type Config = typeof config;

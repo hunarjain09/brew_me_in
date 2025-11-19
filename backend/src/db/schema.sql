@@ -140,6 +140,123 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+-- Component 2: Real-time Chat Tables
+
+-- Messages table (for real-time chat)
+CREATE TABLE IF NOT EXISTS messages (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID REFERENCES users(id) ON DELETE SET NULL,
+  username VARCHAR(50) NOT NULL,
+  cafe_id UUID NOT NULL REFERENCES cafes(id) ON DELETE CASCADE,
+  content TEXT NOT NULL,
+  message_type VARCHAR(20) DEFAULT 'user' CHECK (message_type IN ('user', 'agent', 'system', 'barista')),
+  metadata JSONB,
+  created_at TIMESTAMP DEFAULT NOW(),
+  deleted_at TIMESTAMP
+);
+
+-- Indexes for messages
+CREATE INDEX IF NOT EXISTS idx_messages_cafe_created ON messages(cafe_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_messages_user ON messages(user_id);
+CREATE INDEX IF NOT EXISTS idx_messages_deleted ON messages(deleted_at) WHERE deleted_at IS NULL;
+
+-- Function to clean up old messages (keep last 7 days)
+CREATE OR REPLACE FUNCTION cleanup_old_messages()
+RETURNS INTEGER AS $$
+DECLARE
+  deleted_count INTEGER;
+BEGIN
+  DELETE FROM messages WHERE created_at < NOW() - INTERVAL '7 days';
+  GET DIAGNOSTICS deleted_count = ROW_COUNT;
+  RETURN deleted_count;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Component 4: Interest Matching & Poke System Tables
+
+-- User interests table (uses JSONB in users table, but keeping this for relational queries)
+CREATE TABLE IF NOT EXISTS user_interests (
+  user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+  interest VARCHAR(50) NOT NULL,
+  created_at TIMESTAMP DEFAULT NOW(),
+  PRIMARY KEY (user_id, interest)
+);
+
+-- Pokes table
+CREATE TABLE IF NOT EXISTS pokes (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  from_user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+  to_user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+  shared_interest VARCHAR(50),
+  status VARCHAR(20) DEFAULT 'pending' CHECK (status IN ('pending', 'matched', 'declined', 'expired')),
+  created_at TIMESTAMP DEFAULT NOW(),
+  expires_at TIMESTAMP NOT NULL,
+  responded_at TIMESTAMP,
+  CONSTRAINT no_self_poke CHECK (from_user_id != to_user_id)
+);
+
+-- DM channels table
+CREATE TABLE IF NOT EXISTS dm_channels (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user1_id UUID REFERENCES users(id) ON DELETE CASCADE,
+  user2_id UUID REFERENCES users(id) ON DELETE CASCADE,
+  cafe_id UUID REFERENCES cafes(id) ON DELETE SET NULL,
+  created_at TIMESTAMP DEFAULT NOW(),
+  last_message_at TIMESTAMP,
+  CONSTRAINT unique_user_pair UNIQUE(user1_id, user2_id),
+  CONSTRAINT ordered_users CHECK (user1_id < user2_id)
+);
+
+-- DM messages table
+CREATE TABLE IF NOT EXISTS dm_messages (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  channel_id UUID REFERENCES dm_channels(id) ON DELETE CASCADE,
+  sender_id UUID REFERENCES users(id) ON DELETE CASCADE,
+  content TEXT NOT NULL,
+  created_at TIMESTAMP DEFAULT NOW()
+);
+
+-- Indexes for Component 4
+CREATE INDEX IF NOT EXISTS idx_user_interests_interest ON user_interests(interest);
+CREATE INDEX IF NOT EXISTS idx_pokes_to_user_status ON pokes(to_user_id, status);
+CREATE INDEX IF NOT EXISTS idx_pokes_from_user ON pokes(from_user_id);
+CREATE INDEX IF NOT EXISTS idx_pokes_expires_at ON pokes(expires_at) WHERE status = 'pending';
+CREATE INDEX IF NOT EXISTS idx_dm_channels_users ON dm_channels(user1_id, user2_id);
+CREATE INDEX IF NOT EXISTS idx_dm_messages_channel ON dm_messages(channel_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_dm_messages_sender ON dm_messages(sender_id);
+
+-- Function to update last_message_at in dm_channels
+CREATE OR REPLACE FUNCTION update_dm_channel_last_message()
+RETURNS TRIGGER AS $$
+BEGIN
+  UPDATE dm_channels
+  SET last_message_at = NEW.created_at
+  WHERE id = NEW.channel_id;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Trigger to automatically update last_message_at
+DROP TRIGGER IF EXISTS trigger_update_dm_last_message ON dm_messages;
+CREATE TRIGGER trigger_update_dm_last_message
+  AFTER INSERT ON dm_messages
+  FOR EACH ROW
+  EXECUTE FUNCTION update_dm_channel_last_message();
+
+-- Function to clean up expired pokes
+CREATE OR REPLACE FUNCTION cleanup_expired_pokes()
+RETURNS INTEGER AS $$
+DECLARE
+  updated_count INTEGER;
+BEGIN
+  UPDATE pokes
+  SET status = 'expired'
+  WHERE status = 'pending' AND expires_at < NOW();
+  GET DIAGNOSTICS updated_count = ROW_COUNT;
+  RETURN updated_count;
+END;
+$$ LANGUAGE plpgsql;
+
 -- Insert sample cafe data for testing
 INSERT INTO cafes (name, wifi_ssid, latitude, longitude, geofence_radius)
 VALUES
