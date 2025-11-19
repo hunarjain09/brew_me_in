@@ -32,12 +32,12 @@ test.describe('Dashboard', () => {
 
     // Check for main elements
     await expect(page.locator('h1:has-text("Brew Me In")')).toBeVisible();
-    await expect(page.locator('text=Test Cafe')).toBeVisible();
+    await expect(page.locator('header p:has-text("Test Cafe")')).toBeVisible();
     await expect(page.locator('text=moderator@test.com')).toBeVisible();
 
     // Check for connection status indicator
-    const connectionStatus = page.locator('text=Connected, text=Disconnected');
-    await expect(connectionStatus.first()).toBeVisible();
+    const connectionStatus = page.locator('header').getByText(/Connected|Disconnected/);
+    await expect(connectionStatus).toBeVisible();
 
     // Take snapshot of header
     const header = page.locator('header').first();
@@ -48,16 +48,16 @@ test.describe('Dashboard', () => {
 
   test('should render stats bar', async ({ page }) => {
     // Wait for stats to load
-    await page.waitForSelector('text=Active Users', { timeout: 5000 });
+    await page.waitForSelector('.glass-card', { timeout: 5000 });
 
-    // Check all stat cards are visible
-    await expect(page.locator('text=Active Users')).toBeVisible();
-    await expect(page.locator('text=Messages')).toBeVisible();
-    await expect(page.locator('text=Agent Queries')).toBeVisible();
-    await expect(page.locator('text=Flagged')).toBeVisible();
+    // Check all stat cards are visible by looking for the stat text within cards
+    const statsBar = page.locator('div.grid.grid-cols-4').first();
+    await expect(statsBar.getByText('Active Users', { exact: true })).toBeVisible();
+    await expect(statsBar.getByText('Messages', { exact: true })).toBeVisible();
+    await expect(statsBar.getByText('Agent Queries', { exact: true })).toBeVisible();
+    await expect(statsBar.getByText('Flagged', { exact: true })).toBeVisible();
 
     // Take snapshot of stats bar
-    const statsBar = page.locator('div.grid.grid-cols-4').first();
     await expect(statsBar).toHaveScreenshot('dashboard-stats.png', {
       animations: 'disabled',
     });
@@ -67,15 +67,15 @@ test.describe('Dashboard', () => {
     // Wait for navigation to be visible
     await page.waitForSelector('nav');
 
-    // Check all navigation items
-    await expect(page.locator('text=Overview')).toBeVisible();
-    await expect(page.locator('text=Activity')).toBeVisible();
-    await expect(page.locator('text=Analytics')).toBeVisible();
-    await expect(page.locator('text=Users')).toBeVisible();
-    await expect(page.locator('text=Agent Config')).toBeVisible();
+    // Check all navigation items using getByRole for links
+    const nav = page.locator('nav').first();
+    await expect(nav.getByRole('link', { name: /Overview/ })).toBeVisible();
+    await expect(nav.getByRole('link', { name: /Activity/ })).toBeVisible();
+    await expect(nav.getByRole('link', { name: /Analytics/ })).toBeVisible();
+    await expect(nav.getByRole('link', { name: /Users/ })).toBeVisible();
+    await expect(nav.getByRole('link', { name: /Agent Config/ })).toBeVisible();
 
     // Take snapshot of navigation
-    const nav = page.locator('nav').first();
     await expect(nav).toHaveScreenshot('dashboard-navigation.png', {
       animations: 'disabled',
     });
@@ -95,8 +95,8 @@ test.describe('Dashboard', () => {
   });
 
   test('should render Activity page', async ({ page }) => {
-    // Navigate to Activity
-    await page.click('text=Activity');
+    // Navigate to Activity using nav link
+    await page.locator('nav').getByRole('link', { name: /Activity/ }).click();
     await page.waitForURL('**/activity');
     await page.waitForLoadState('load');
     await page.waitForTimeout(500); // Wait for animations
@@ -109,8 +109,8 @@ test.describe('Dashboard', () => {
   });
 
   test('should render Analytics page', async ({ page }) => {
-    // Navigate to Analytics
-    await page.click('text=Analytics');
+    // Navigate to Analytics using nav link
+    await page.locator('nav').getByRole('link', { name: /Analytics/ }).click();
     await page.waitForURL('**/analytics');
     await page.waitForLoadState('load');
     await page.waitForTimeout(500); // Wait for animations
@@ -123,8 +123,8 @@ test.describe('Dashboard', () => {
   });
 
   test('should render Users page', async ({ page }) => {
-    // Navigate to Users
-    await page.click('text=Users');
+    // Navigate to Users using nav link
+    await page.locator('nav').getByRole('link', { name: /Users/ }).click();
     await page.waitForURL('**/users');
     await page.waitForLoadState('load');
     await page.waitForTimeout(500); // Wait for animations
@@ -137,8 +137,8 @@ test.describe('Dashboard', () => {
   });
 
   test('should render Agent Config page', async ({ page }) => {
-    // Navigate to Agent Config
-    await page.click('text=Agent Config');
+    // Navigate to Agent Config using nav link
+    await page.locator('nav').getByRole('link', { name: /Agent Config/ }).click();
     await page.waitForURL('**/agent');
     await page.waitForLoadState('load');
     await page.waitForTimeout(500); // Wait for animations
@@ -151,26 +151,26 @@ test.describe('Dashboard', () => {
   });
 
   test('should navigate between pages correctly', async ({ page }) => {
-    // Test navigation flow
-    await page.click('text=Activity');
+    // Test navigation flow using nav links
+    await page.locator('nav').getByRole('link', { name: /Activity/ }).click();
     await expect(page).toHaveURL(/.*activity/);
 
-    await page.click('text=Analytics');
+    await page.locator('nav').getByRole('link', { name: /Analytics/ }).click();
     await expect(page).toHaveURL(/.*analytics/);
 
-    await page.click('text=Users');
+    await page.locator('nav').getByRole('link', { name: /Users/ }).click();
     await expect(page).toHaveURL(/.*users/);
 
-    await page.click('text=Agent Config');
+    await page.locator('nav').getByRole('link', { name: /Agent Config/ }).click();
     await expect(page).toHaveURL(/.*agent/);
 
-    await page.click('text=Overview');
+    await page.locator('nav').getByRole('link', { name: /Overview/ }).click();
     await expect(page).toHaveURL(/^(?!.*(activity|analytics|users|agent)).*$/);
   });
 
   test('should highlight active navigation item', async ({ page }) => {
-    // Navigate to Activity
-    await page.click('text=Activity');
+    // Navigate to Activity using nav link
+    await page.locator('nav').getByRole('link', { name: /Activity/ }).click();
     await page.waitForTimeout(500);
 
     // Check that Activity is highlighted
