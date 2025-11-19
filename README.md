@@ -22,7 +22,7 @@ brew_me_in creates ephemeral social experiences within coffee shops by:
 - **Component 5 (AI Agent Integration)**: ✅ IMPLEMENTED
 - **Component 6 (Admin Dashboard)**: 🚧 PLANNED
 - **Component 7 (Network Validation)**: ✅ IMPLEMENTED
-- **Component 8 (Background Jobs)**: ⚡ PARTIAL (Poke expiration implemented)
+- **Component 8 (Background Jobs)**: ✅ IMPLEMENTED
 
 ## Tech Stack
 
@@ -36,6 +36,7 @@ brew_me_in creates ephemeral social experiences within coffee shops by:
 - **Authentication**: JWT tokens
 - **Logging**: Winston (structured JSON logs)
 - **Validation**: Zod schemas
+- **Job Scheduling**: node-cron (background tasks)
 
 ### Frontend (Planned)
 - React Native (iOS/Android)
@@ -74,6 +75,15 @@ brew_me_in/
 │   │   │   ├── JoinToken.ts
 │   │   │   └── Cafe.ts
 │   │   ├── routes/         # API routes
+│   │   ├── scheduler/     # Background jobs & cron tasks (Component 8)
+│   │   │   ├── index.ts              # Main scheduler orchestrator
+│   │   │   └── jobs/
+│   │   │       ├── expireUsers.ts    # User expiration job
+│   │   │       ├── expireBadges.ts   # Badge expiration job
+│   │   │       ├── calculateBadges.ts # Badge calculation job
+│   │   │       ├── expirePokes.ts    # Poke cleanup job
+│   │   │       ├── aggregateAnalytics.ts # Analytics job
+│   │   │       └── proactiveMessages.ts  # AI message job
 │   │   │   ├── authRoutes.ts
 │   │   │   ├── userRoutes.ts
 │   │   │   ├── badgeRoutes.ts
@@ -157,7 +167,7 @@ Heuristic-based spam detection with multiple checks:
 - **Hard Block**: Message rejection for spam
 - **24-Hour Mute**: Automatic mute for severe violations
 
-### 4. Interest Matching & Poke System (Component 4)
+### 5. Interest Matching & Poke System (Component 4)
 
 #### Interest-Based Discovery
 - **Intelligent Matching**: Find users with shared interests in the same cafe
@@ -191,7 +201,74 @@ Heuristic-based spam detection with multiple checks:
   - `poke_matched` - Mutual match, DM channel created
   - `dm_message` - New direct message received
 
-### 5. Security Features
+
+### 6. AI Agent Integration (Component 5)
+- **Claude Sonnet 4.5**: Latest Anthropic AI model
+- **Contextual Responses**: Agent aware of cafe context, popular drinks, peak hours
+- **Personality System**: Configurable per-cafe personalities (friendly, professional, quirky)
+- **Rate Limiting**: 2 queries per user session, 2-minute global cooldown
+- **Smart Caching**: Common questions cached in Redis (1-hour TTL)
+- **Prompt Engineering**: Dynamic system prompts with cafe-specific context
+- **Error Handling**: Graceful fallbacks for API failures
+- **Socket.IO Integration**: Real-time agent responses in chat
+
+### 7. Background Jobs & Scheduled Tasks (Component 8)
+
+Automated scheduler agent with 6 comprehensive background jobs:
+
+#### Scheduled Jobs
+
+| Job | Schedule | Purpose |
+|-----|----------|---------|
+| **expireUsers** | Every hour (`0 * * * *`) | Expires inactive users, clears Redis cache, updates café statistics |
+| **expireBadges** | Daily at midnight (`0 0 * * *`) | Expires time-limited badges (Early Bird, Night Owl, etc.) |
+| **calculateBadges** | Daily at 12:05 AM (`5 0 * * *`) | Awards new badges based on user behavior patterns |
+| **expirePokes** | Every 5 minutes (`*/5 * * * *`) | Cleans up expired poke interactions (24h expiration) |
+| **aggregateAnalytics** | Every hour at :05 (`5 * * * *`) | Aggregates user activity metrics per café |
+| **proactiveMessages** | Every 2 minutes (`*/2 * * * *`) | Generates AI-powered contextual messages |
+
+#### Badge Types Awarded
+- **Early Bird**: Users who check in before 8 AM (7-day validity)
+- **Night Owl**: Users who check in after 10 PM (7-day validity)
+- **Social Butterfly**: Users with 10+ pokes in the last week (30-day validity)
+- **Frequent Visitor**: Users with 5+ tips in the last month (60-day validity)
+
+#### Job Features
+- **Comprehensive Error Handling**: Winston logging with detailed execution traces
+- **Automatic Cache Invalidation**: Redis cache updates on data changes
+- **Graceful Degradation**: Jobs handle missing tables/features gracefully
+- **Rate Limiting**: Proactive messages rate-limited to prevent spam
+- **Table Auto-Creation**: Creates `cafe_analytics` and `agent_messages` tables as needed
+- **Manual Triggers**: Admin API endpoints for testing individual jobs
+
+#### Scheduler API Endpoints
+```http
+# Health Check (includes scheduler status)
+GET /health
+
+# Scheduler Status
+GET /api/scheduler/status
+Response: { isRunning: boolean, jobCount: number, jobs: string[] }
+
+# Manual Job Trigger (Testing/Admin)
+POST /api/scheduler/trigger/:jobName
+Available jobs: expireUsers, expireBadges, calculateBadges, expirePokes, aggregateAnalytics, proactiveMessages
+```
+
+#### NPM Scripts
+```bash
+npm run scheduler  # Run scheduler standalone (for testing)
+npm run dev        # Run full app with scheduler enabled
+```
+
+#### Configuration
+```env
+ENABLE_SCHEDULER=true              # Enable/disable scheduler
+ENABLE_PROACTIVE_MESSAGES=true     # Enable AI proactive messages
+LOG_LEVEL=info                     # Logging verbosity
+```
+
+### 8. Security Features
 - Rate limiting on all endpoints
 - JWT token rotation
 - Network-based authentication
