@@ -86,14 +86,14 @@ const AgentConfig: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <div className="bg-white rounded-lg shadow p-6">
-        <h2 className="text-2xl font-bold mb-6">Agent Configuration</h2>
+      <div className="glass-card rounded-2xl p-6">
+        <h2 className="text-2xl font-bold mb-6 text-white drop-shadow-lg">Agent Configuration</h2>
 
-        <div className="space-y-6">
-          <div className="flex items-center justify-between">
+        <div className="space-y-6 relative z-10">
+          <div className="flex items-center justify-between glass-light p-4 rounded-xl">
             <div>
-              <h3 className="text-lg font-semibold">Agent Status</h3>
-              <p className="text-sm text-gray-600">Enable or disable the agent</p>
+              <h3 className="text-lg font-semibold text-white">Agent Status</h3>
+              <p className="text-sm text-white/70">Enable or disable the agent</p>
             </div>
             <label className="relative inline-flex items-center cursor-pointer">
               <input
@@ -102,12 +102,12 @@ const AgentConfig: React.FC = () => {
                 onChange={(e) => setConfig({ ...config, enabled: e.target.checked })}
                 className="sr-only peer"
               />
-              <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+              <div className="w-11 h-6 bg-white/20 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300/50 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-white/30 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
             </label>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-semibold text-white/90 mb-2">
               Response Time
             </label>
             <select
@@ -118,7 +118,7 @@ const AgentConfig: React.FC = () => {
                   responseTime: e.target.value as 'fast' | 'balanced' | 'thorough',
                 })
               }
-              className="w-full px-4 py-2 border rounded"
+              className="glass-input w-full px-4 py-2 rounded-xl text-white font-medium"
             >
               <option value="fast">Fast - Quick responses</option>
               <option value="balanced">Balanced - Moderate depth</option>
@@ -127,29 +127,30 @@ const AgentConfig: React.FC = () => {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-semibold text-white/90 mb-2">
               Personality
             </label>
             <input
               type="text"
               value={config.personality}
               onChange={(e) => setConfig({ ...config, personality: e.target.value })}
-              className="w-full px-4 py-2 border rounded"
+              className="glass-input w-full px-4 py-2 rounded-xl text-white placeholder-white/50 font-medium"
               placeholder="e.g., friendly, professional, casual"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-semibold text-white/90 mb-2">
               Specializations
             </label>
             <div className="space-y-2">
               {config.specializations.map((spec, index) => (
                 <div key={index} className="flex items-center space-x-2">
-                  <span className="flex-1 px-4 py-2 bg-gray-100 rounded">{spec}</span>
+                  <span className="flex-1 px-4 py-2 glass-light rounded-xl text-white font-medium">{spec}</span>
                   <button
                     onClick={() => removeSpecialization(index)}
-                    className="px-3 py-2 bg-red-500 text-white rounded hover:bg-red-600"
+                    className="glass-btn-primary px-3 py-2 rounded-xl text-white font-semibold"
+                    style={{ background: 'linear-gradient(135deg, rgba(239, 68, 68, 0.9), rgba(220, 38, 38, 0.9))' }}
                   >
                     Remove
                   </button>
@@ -157,7 +158,8 @@ const AgentConfig: React.FC = () => {
               ))}
               <button
                 onClick={addSpecialization}
-                className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600"
+                className="glass-btn-primary px-4 py-2 rounded-xl text-white font-semibold"
+                style={{ background: 'linear-gradient(135deg, rgba(34, 197, 94, 0.9), rgba(22, 163, 74, 0.9))' }}
               >
                 Add Specialization
               </button>
@@ -167,7 +169,7 @@ const AgentConfig: React.FC = () => {
           <button
             onClick={handleSave}
             disabled={isSaving}
-            className="w-full px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50"
+            className="glass-btn-primary w-full px-4 py-2 rounded-xl text-white font-semibold disabled:opacity-50"
           >
             {isSaving ? 'Saving...' : 'Save Configuration'}
           </button>
@@ -175,50 +177,50 @@ const AgentConfig: React.FC = () => {
       </div>
 
       {stats && (
-        <div className="bg-white rounded-lg shadow p-6">
-          <h3 className="text-xl font-semibold mb-4">Agent Statistics</h3>
-          <div className="grid grid-cols-3 gap-4">
-            <div className="bg-blue-50 p-4 rounded-lg">
-              <p className="text-sm text-gray-600">Total Queries</p>
-              <p className="text-2xl font-bold text-blue-600">{stats.total_queries || 0}</p>
+        <div className="glass-card rounded-2xl p-6">
+          <h3 className="text-xl font-semibold mb-4 text-white drop-shadow">Agent Statistics</h3>
+          <div className="grid grid-cols-3 gap-4 relative z-10">
+            <div className="glass-light p-4 rounded-xl border border-blue-300/30">
+              <p className="text-sm text-white/80 font-medium">Total Queries</p>
+              <p className="text-2xl font-bold text-white drop-shadow">{stats.total_queries || 0}</p>
             </div>
-            <div className="bg-green-50 p-4 rounded-lg">
-              <p className="text-sm text-gray-600">Avg Processing Time</p>
-              <p className="text-2xl font-bold text-green-600">{stats.avg_processing_time || 0}ms</p>
+            <div className="glass-light p-4 rounded-xl border border-green-300/30">
+              <p className="text-sm text-white/80 font-medium">Avg Processing Time</p>
+              <p className="text-2xl font-bold text-white drop-shadow">{stats.avg_processing_time || 0}ms</p>
             </div>
-            <div className="bg-purple-50 p-4 rounded-lg">
-              <p className="text-sm text-gray-600">Unique Users</p>
-              <p className="text-2xl font-bold text-purple-600">{stats.unique_users || 0}</p>
+            <div className="glass-light p-4 rounded-xl border border-purple-300/30">
+              <p className="text-sm text-white/80 font-medium">Unique Users</p>
+              <p className="text-2xl font-bold text-white drop-shadow">{stats.unique_users || 0}</p>
             </div>
           </div>
         </div>
       )}
 
-      <div className="bg-white rounded-lg shadow p-6">
-        <h3 className="text-xl font-semibold mb-4">Recent Queries</h3>
-        <div className="space-y-3 max-h-96 overflow-y-auto">
+      <div className="glass-card rounded-2xl p-6">
+        <h3 className="text-xl font-semibold mb-4 text-white drop-shadow">Recent Queries</h3>
+        <div className="space-y-3 max-h-96 overflow-y-auto pr-2 relative z-10">
           {queries.length === 0 ? (
-            <p className="text-gray-500 text-center py-8">No queries yet</p>
+            <p className="text-white/70 text-center py-8">No queries yet</p>
           ) : (
             queries.map((query) => (
-              <div key={query.id} className="border rounded-lg p-4">
+              <div key={query.id} className="glass-light rounded-xl p-4 border border-white/10">
                 <div className="flex items-center justify-between mb-2">
-                  <span className="font-medium">{query.username || 'Anonymous'}</span>
-                  <span className="text-xs text-gray-500">
+                  <span className="font-semibold text-white">{query.username || 'Anonymous'}</span>
+                  <span className="text-xs text-white/70">
                     {new Date(query.created_at).toLocaleString()}
                   </span>
                 </div>
                 <div className="text-sm">
-                  <p className="text-gray-700 mb-2">
-                    <strong>Query:</strong> {query.query}
+                  <p className="text-white/90 mb-2">
+                    <strong className="text-white">Query:</strong> {query.query}
                   </p>
                   {query.response && (
-                    <p className="text-gray-600">
-                      <strong>Response:</strong> {query.response}
+                    <p className="text-white/80">
+                      <strong className="text-white">Response:</strong> {query.response}
                     </p>
                   )}
                   {query.processing_time_ms && (
-                    <p className="text-xs text-gray-500 mt-1">
+                    <p className="text-xs text-white/60 mt-1">
                       Processing time: {query.processing_time_ms}ms
                     </p>
                   )}
