@@ -1,535 +1,378 @@
-# Brew Me In - Network Validation & Location Services
+# brew_me_in
 
-A comprehensive location-based cafe social networking platform with WiFi SSID detection, geofencing, and real-time presence tracking.
+A location-based social networking app for coffee shops, enabling temporary connections and AI-powered conversations between cafe visitors.
 
-## 📋 Table of Contents
+## Overview
 
-- [Overview](#overview)
-- [Architecture](#architecture)
-- [Features](#features)
-- [Project Structure](#project-structure)
-- [Installation](#installation)
-- [Configuration](#configuration)
-- [API Documentation](#api-documentation)
-- [Mobile Integration](#mobile-integration)
-- [WebSocket Events](#websocket-events)
-- [Database Schema](#database-schema)
-- [Security](#security)
-- [Testing](#testing)
+brew_me_in creates ephemeral social experiences within coffee shops by:
+- Generating temporary usernames for customers upon purchase
+- Enabling real-time chat with AI agent assistance
+- Rewarding regular customers with badges and perks
+- Validating physical presence through WiFi/geofencing
 
-## 🎯 Overview
+## Tech Stack
 
-Brew Me In is a location-based social networking platform designed for cafes. It uses a combination of WiFi SSID detection and GPS geofencing to verify that users are actually present in a cafe before granting access to cafe-specific features.
+### Backend
+- **Runtime**: Node.js with TypeScript
+- **Framework**: Express.js
+- **Database**: PostgreSQL (user data, chat history)
+- **Cache**: Redis (sessions, rate limiting)
+- **Real-time**: Socket.io (WebSocket connections)
+- **AI**: Anthropic Claude API
+- **Authentication**: JWT tokens
 
-### Key Components
+### Frontend
+- React Native (iOS/Android)
+- React Web
+- Socket.io Client
 
-1. **Backend Services** (Node.js + TypeScript + Express)
-   - Location validation API
-   - Real-time presence tracking with Socket.io
-   - Background jobs for periodic presence checks
-   - PostgreSQL database with TypeORM
-
-2. **Mobile App** (React Native + Expo)
-   - WiFi SSID detection
-   - GPS geofencing
-   - Real-time Socket.io connection
-   - Location tracking services
-
-## 🏗️ Architecture
-
-```
-┌─────────────────┐
-│  Mobile App     │
-│  (React Native) │
-└────────┬────────┘
-         │
-         ├─── WiFi SSID Detection
-         ├─── GPS Location
-         └─── Socket.io Connection
-                │
-                ▼
-┌────────────────────────────┐
-│  Backend API (Express)     │
-│                            │
-│  ├─ Location Validation    │
-│  ├─ Geofence Checking      │
-│  ├─ Presence Management    │
-│  └─ Access Control         │
-└────────┬───────────────────┘
-         │
-         ├─── PostgreSQL Database
-         ├─── Socket.io Server
-         └─── Background Jobs
-```
-
-## ✨ Features
-
-### Network Validation
-
-- ✅ **WiFi SSID Detection**: Primary validation method using network SSID matching
-- ✅ **Geofencing**: Fallback validation using GPS coordinates and radius checking
-- ✅ **Graceful Degradation**: Falls back to geofencing if WiFi SSID is unavailable
-- ✅ **Real-time Updates**: Socket.io for instant presence notifications
-
-### Location Services
-
-- 📍 **GPS Tracking**: Real-time location monitoring
-- 🗺️ **Nearby Cafes**: Find cafes within a specified radius
-- 🚧 **Geofence Boundaries**: Configurable radius for each cafe
-- 📊 **Distance Calculation**: Haversine formula for accurate distance measurements
-
-### Presence Management
-
-- 👥 **In Cafe Status**: Track which users are currently in each cafe
-- ⏰ **Last Seen Tracking**: Record when users were last in a cafe
-- 🔄 **Periodic Validation**: Background job checks presence every 5 minutes
-- 🚨 **Suspicious Activity Detection**: Identify unusual access patterns
-
-### Access Control
-
-- 🔐 **Network-based Access**: Only allow access to users physically in the cafe
-- 📝 **Access Logging**: Track all access attempts with method and success status
-- ⚠️ **Manual Override**: Support for testing and demo scenarios
-- 🛡️ **Privacy Protection**: Location data only collected when app is active
-
-## 📁 Project Structure
+## Project Structure
 
 ```
 brew_me_in/
 ├── backend/
 │   ├── src/
-│   │   ├── config/
-│   │   │   └── database.ts           # Database configuration
-│   │   ├── controllers/
-│   │   │   └── locationController.ts # API endpoint handlers
-│   │   ├── jobs/
-│   │   │   └── presenceCheckJob.ts   # Background presence validation
-│   │   ├── migrations/
-│   │   │   └── 1700000000000-CreateLocationTables.ts
-│   │   ├── models/
-│   │   │   ├── CafeLocation.ts       # Cafe location entity
-│   │   │   ├── UserPresence.ts       # User presence entity
-│   │   │   └── AccessLog.ts          # Access log entity
-│   │   ├── routes/
-│   │   │   └── location.ts           # Location API routes
-│   │   ├── services/
-│   │   │   └── locationService.ts    # Core location logic
-│   │   ├── types/
-│   │   │   ├── location.ts           # Location type definitions
-│   │   │   └── network.ts            # Network type definitions
-│   │   ├── utils/
-│   │   │   └── geolocation.ts        # Geolocation utilities
-│   │   ├── websocket/
-│   │   │   └── locationEvents.ts     # Socket.io event handlers
-│   │   └── index.ts                  # Express app setup
+│   │   ├── config/         # Configuration management
+│   │   ├── controllers/    # Request handlers
+│   │   ├── db/            # Database connections and schemas
+│   │   ├── middleware/    # Express middleware
+│   │   ├── models/        # Data models
+│   │   ├── routes/        # API routes
+│   │   ├── utils/         # Utilities (JWT, validation)
+│   │   ├── types/         # TypeScript types
+│   │   ├── app.ts         # Express app setup
+│   │   └── index.ts       # Server entry point
 │   ├── package.json
-│   ├── tsconfig.json
-│   └── .env.example
-│
-└── mobile/
-    ├── src/
-    │   ├── hooks/
-    │   │   ├── useLocationTracking.ts  # Location tracking hook
-    │   │   └── useSocket.ts            # Socket.io hook
-    │   └── services/
-    │       ├── cafeAccessService.ts    # Cafe access validation
-    │       ├── locationService.ts      # Location utilities
-    │       └── networkService.ts       # Network detection
-    ├── package.json
-    └── tsconfig.json
+│   └── tsconfig.json
+└── README.md
 ```
 
-## 🚀 Installation
+## Getting Started
 
 ### Prerequisites
 
-- Node.js >= 18.0.0
-- PostgreSQL >= 13
+- Node.js 18+
+- PostgreSQL 14+
+- Redis 7+
 - npm or yarn
-- Expo CLI (for mobile development)
 
 ### Backend Setup
 
+1. **Navigate to backend directory**
+   ```bash
+   cd backend
+   ```
+
+2. **Install dependencies**
+   ```bash
+   npm install
+   ```
+
+3. **Configure environment**
+   ```bash
+   cp .env.example .env
+   ```
+
+   Edit `.env` with your configuration:
+   - Database credentials
+   - Redis connection
+   - JWT secrets
+   - Anthropic API key
+
+4. **Set up database**
+
+   Create PostgreSQL database:
+   ```bash
+   createdb brew_me_in
+   ```
+
+   Run migrations:
+   ```bash
+   npm run migrate
+   ```
+
+5. **Start development server**
+   ```bash
+   npm run dev
+   ```
+
+The server will start on `http://localhost:3000`
+
+### Production Build
+
 ```bash
-cd backend
-
-# Install dependencies
-npm install
-
-# Copy environment file
-cp .env.example .env
-
-# Edit .env with your database credentials
-# DB_HOST=localhost
-# DB_PORT=5432
-# DB_USERNAME=postgres
-# DB_PASSWORD=your_password
-# DB_DATABASE=brew_me_in
-
-# Run migrations
-npm run migration:run
-
-# Start development server
-npm run dev
-```
-
-### Mobile Setup
-
-```bash
-cd mobile
-
-# Install dependencies
-npm install
-
-# Start Expo development server
+npm run build
 npm start
-
-# Run on iOS simulator
-npm run ios
-
-# Run on Android emulator
-npm run android
 ```
 
-## ⚙️ Configuration
+## API Documentation
 
-### Environment Variables (Backend)
+### Authentication Endpoints
+
+#### Generate Username (Barista)
+```http
+POST /api/auth/barista/generate-username
+Content-Type: application/json
+
+{
+  "cafeId": "uuid",
+  "receiptId": "string"
+}
+
+Response:
+{
+  "username": "HappyOtter42",
+  "joinToken": "token-string",
+  "expiresAt": "2024-01-01T12:00:00Z"
+}
+```
+
+#### Join Cafe (Customer)
+```http
+POST /api/auth/join
+Content-Type: application/json
+
+{
+  "username": "HappyOtter42",
+  "joinToken": "token-string",
+  "cafeId": "uuid",
+  "wifiSsid": "CafeWiFi-Guest",  // Optional
+  "latitude": 37.7749,            // Optional
+  "longitude": -122.4194          // Optional
+}
+
+Response:
+{
+  "accessToken": "jwt-token",
+  "refreshToken": "jwt-refresh-token",
+  "user": { ... }
+}
+```
+
+#### Refresh Token
+```http
+POST /api/auth/refresh
+Content-Type: application/json
+
+{
+  "refreshToken": "jwt-refresh-token"
+}
+
+Response:
+{
+  "accessToken": "new-jwt-token",
+  "user": { ... }
+}
+```
+
+### User Endpoints
+
+All user endpoints require `Authorization: Bearer <token>` header.
+
+#### Get Current User
+```http
+GET /api/users/me
+
+Response:
+{
+  "user": {
+    "id": "uuid",
+    "username": "HappyOtter42",
+    "cafeId": "uuid",
+    "badgeStatus": "active",
+    "tipCount": 7,
+    ...
+  }
+}
+```
+
+#### Update Interests
+```http
+PUT /api/users/me/interests
+Content-Type: application/json
+
+{
+  "interests": ["coffee", "tech", "music"]
+}
+```
+
+#### Toggle Poke Feature
+```http
+PUT /api/users/me/poke-enabled
+Content-Type: application/json
+
+{
+  "enabled": true
+}
+```
+
+### Badge Endpoints
+
+#### Record Tip
+```http
+POST /api/badges/record-tip
+Content-Type: application/json
+
+{
+  "userId": "uuid",
+  "amount": 5.00
+}
+
+Response:
+{
+  "tip": { ... },
+  "eligibility": {
+    "eligible": true,
+    "tipsInWindow": 5,
+    "tipsNeeded": 0
+  },
+  "badge": { ... }
+}
+```
+
+#### Get Badge Status
+```http
+GET /api/badges/status
+Authorization: Bearer <token>
+
+Response:
+{
+  "hasBadge": true,
+  "badgeStatus": "active",
+  "eligibility": {
+    "tipsInWindow": 7,
+    "tipsNeeded": 0,
+    "tipThreshold": 5,
+    "windowDays": 7
+  },
+  "perks": ["Priority in chat", "Extended session", ...]
+}
+```
+
+## Features
+
+### 1. User Management & Authentication
+- **Temporary Usernames**: 24-hour session-based usernames
+- **Barista Portal**: Receipt-to-username mapping
+- **Network Validation**: WiFi SSID + Geofencing fallback
+- **JWT Authentication**: Access and refresh tokens
+
+### 2. Badge System
+- **Criteria**: 5 tips within 7 days
+- **Duration**: 30-day badge validity
+- **Perks**: Priority features, extended sessions
+- **Tracking**: Automatic tip counting and badge assignment
+
+### 3. Security Features
+- Rate limiting on all endpoints
+- JWT token rotation
+- Network-based authentication
+- SQL injection prevention
+- XSS protection via Helmet.js
+
+## Database Schema
+
+### Core Tables
+- `cafes` - Cafe information and WiFi networks
+- `users` - Temporary user accounts (24h expiration)
+- `badges` - User badge status and eligibility
+- `tips` - Tip tracking for badge system
+- `join_tokens` - Barista-generated invitation tokens
+- `refresh_tokens` - JWT refresh token storage
+
+### Automatic Cleanup
+Database functions automatically clean up:
+- Expired users (24h sessions)
+- Expired join tokens (15min validity)
+- Expired badges (30 days)
+- Revoked refresh tokens
+
+## Configuration
+
+Key environment variables:
 
 ```env
 # Server
-NODE_ENV=development
 PORT=3000
+NODE_ENV=development
 
 # Database
-DB_HOST=localhost
-DB_PORT=5432
-DB_USERNAME=postgres
-DB_PASSWORD=postgres
-DB_DATABASE=brew_me_in
+DATABASE_URL=postgresql://user:pass@localhost:5432/brew_me_in
 
-# Location Services
-GEOFENCE_DEFAULT_RADIUS=50
-LOCATION_UPDATE_INTERVAL=300000
-PRESENCE_CHECK_INTERVAL=300000
+# Redis
+REDIS_HOST=localhost
+REDIS_PORT=6379
 
-# Security
-JWT_SECRET=your-secret-key
-CORS_ORIGIN=http://localhost:3001,http://localhost:19006
+# JWT
+JWT_SECRET=your-secret-here
+JWT_EXPIRES_IN=24h
+
+# Badge Settings
+BADGE_TIP_THRESHOLD=5
+BADGE_TIP_WINDOW_DAYS=7
+BADGE_DURATION_DAYS=30
+
+# User Settings
+USER_SESSION_DURATION_HOURS=24
 ```
 
-### Required Permissions (Mobile)
+## Development Workflow
 
-#### iOS (Info.plist)
-
-```xml
-<key>NSLocationWhenInUseUsageDescription</key>
-<string>We need your location to verify you're in the cafe</string>
-<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
-<string>We need your location to verify you're in the cafe</string>
-```
-
-#### Android (AndroidManifest.xml)
-
-```xml
-<uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
-<uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
-<uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
-```
-
-## 📡 API Documentation
-
-### Endpoints
-
-#### POST /api/location/validate
-
-Validate if user has access to a cafe.
-
-**Request:**
-```json
-{
-  "cafeId": "uuid",
-  "userId": "uuid",
-  "ssid": "CafeWiFi",
-  "coordinates": {
-    "lat": 37.7749,
-    "lng": -122.4194
-  }
-}
-```
-
-**Response:**
-```json
-{
-  "success": true,
-  "data": {
-    "inCafe": true,
-    "method": "wifi",
-    "message": "Access granted via WiFi SSID"
-  }
-}
-```
-
-#### PUT /api/location/update
-
-Update user presence status.
-
-**Request:**
-```json
-{
-  "userId": "uuid",
-  "cafeId": "uuid",
-  "inCafe": true,
-  "ssid": "CafeWiFi",
-  "coordinates": {
-    "lat": 37.7749,
-    "lng": -122.4194
-  }
-}
-```
-
-#### GET /api/location/cafes/nearby
-
-Get nearby cafes.
-
-**Query Parameters:**
-- `lat`: Latitude (required)
-- `lng`: Longitude (required)
-- `radiusMeters`: Search radius in meters (default: 5000)
-- `limit`: Maximum number of results (default: 20)
-
-**Response:**
-```json
-{
-  "success": true,
-  "data": [
-    {
-      "cafeId": "uuid",
-      "name": "Coffee Shop",
-      "distance": 150,
-      "latitude": 37.7749,
-      "longitude": -122.4194,
-      "wifiSSID": "CafeWiFi",
-      "radiusMeters": 50
-    }
-  ]
-}
-```
-
-#### GET /api/location/presence/:userId
-
-Get user's current presence status.
-
-#### GET /api/location/cafes/:cafeId/users
-
-Get all users currently in a specific cafe.
-
-#### POST /api/location/cafes/:cafeId/geofence/check
-
-Check if coordinates are within cafe geofence.
-
-## 📱 Mobile Integration
-
-### Basic Usage Example
-
-```typescript
-import { useLocationTracking } from './hooks/useLocationTracking';
-import { useSocket } from './hooks/useSocket';
-
-function CafeScreen({ cafe, userId }) {
-  // Location tracking
-  const {
-    coordinates,
-    cafeAccess,
-    requestPermissions,
-    startMonitoring,
-    stopMonitoring,
-  } = useLocationTracking(cafe);
-
-  // Socket connection
-  const {
-    connected,
-    inCafe,
-    joinCafe,
-    leaveCafe,
-    subscribeToEvents,
-  } = useSocket(userId, cafe.id);
-
-  useEffect(() => {
-    // Request permissions
-    requestPermissions();
-
-    // Start monitoring
-    startMonitoring();
-
-    // Subscribe to events
-    const unsubscribe = subscribeToEvents({
-      onUserJoined: (data) => console.log('User joined:', data),
-      onUserLeft: (data) => console.log('User left:', data),
-      onPresenceChanged: (data) => console.log('Presence changed:', data),
-    });
-
-    return () => {
-      stopMonitoring();
-      unsubscribe?.();
-    };
-  }, []);
-
-  return (
-    <View>
-      <Text>Status: {inCafe ? 'In Cafe' : 'Outside Cafe'}</Text>
-      <Text>Method: {cafeAccess?.method}</Text>
-      <Text>Connected: {connected ? 'Yes' : 'No'}</Text>
-    </View>
-  );
-}
-```
-
-## 🔌 WebSocket Events
-
-### Client → Server
-
-| Event | Payload | Description |
-|-------|---------|-------------|
-| `cafe:join` | `{ userId, cafeId, ssid?, coordinates? }` | Join a cafe room |
-| `cafe:leave` | `{ userId, cafeId }` | Leave a cafe room |
-| `location:update` | `{ userId, cafeId, ssid?, coordinates? }` | Send location update |
-| `location:subscribe-nearby` | `{ userId, radius }` | Subscribe to nearby updates |
-
-### Server → Client
-
-| Event | Payload | Description |
-|-------|---------|-------------|
-| `cafe:joined` | `{ cafeId, usersInCafe, method }` | Successfully joined cafe |
-| `cafe:join-failed` | `{ reason, method }` | Failed to join cafe |
-| `presence:user-joined` | `{ userId, timestamp }` | Another user joined |
-| `presence:user-left` | `{ userId, timestamp }` | Another user left |
-| `presence:changed` | `{ userId, inCafe, timestamp, method }` | User presence changed |
-| `location:update-ack` | `{ inCafe, timestamp }` | Location update acknowledged |
-
-## 🗄️ Database Schema
-
-### cafe_locations
-
-| Column | Type | Description |
-|--------|------|-------------|
-| id | UUID | Primary key |
-| cafe_id | UUID | Reference to cafe |
-| wifi_ssid | VARCHAR(100) | WiFi network name |
-| latitude | DECIMAL(10,8) | GPS latitude |
-| longitude | DECIMAL(11,8) | GPS longitude |
-| radius_meters | INTEGER | Geofence radius (default: 50) |
-| created_at | TIMESTAMP | Creation timestamp |
-| updated_at | TIMESTAMP | Last update timestamp |
-
-### user_presence
-
-| Column | Type | Description |
-|--------|------|-------------|
-| id | UUID | Primary key |
-| user_id | UUID | User identifier |
-| cafe_id | UUID | Current cafe (nullable) |
-| in_cafe | BOOLEAN | Currently in cafe |
-| last_seen_in_cafe | TIMESTAMP | Last seen timestamp |
-| current_ssid | VARCHAR(100) | Current WiFi SSID |
-| last_latitude | DECIMAL(10,8) | Last known latitude |
-| last_longitude | DECIMAL(11,8) | Last known longitude |
-| validation_method | VARCHAR(20) | wifi/geofence/manual |
-| created_at | TIMESTAMP | Creation timestamp |
-| updated_at | TIMESTAMP | Last update timestamp |
-
-### access_logs
-
-| Column | Type | Description |
-|--------|------|-------------|
-| id | UUID | Primary key |
-| user_id | UUID | User identifier |
-| cafe_id | UUID | Cafe identifier |
-| validation_method | VARCHAR(20) | wifi/geofence/manual |
-| access_granted | BOOLEAN | Access granted |
-| ssid_matched | VARCHAR(100) | Matched SSID |
-| distance_meters | DECIMAL(10,2) | Distance from cafe |
-| suspicious | BOOLEAN | Flagged as suspicious |
-| reason | TEXT | Failure/warning reason |
-| metadata | JSONB | Additional data |
-| created_at | TIMESTAMP | Log timestamp |
-
-## 🔒 Security
-
-### Access Control Features
-
-1. **Dual Validation**: WiFi SSID (primary) + Geofencing (fallback)
-2. **Access Logging**: All attempts logged with success/failure
-3. **Suspicious Activity Detection**:
-   - Rapid location changes
-   - Multiple cafes in short time
-   - Unusual access patterns
-4. **Privacy Protection**:
-   - No background location tracking
-   - Location only checked when app is active
-   - User consent required
-
-### Best Practices
-
-- ✅ Always validate on server-side
-- ✅ Never trust client-reported location without verification
-- ✅ Log all access attempts for audit trail
-- ✅ Implement rate limiting on API endpoints
-- ✅ Use HTTPS in production
-- ✅ Sanitize all user inputs
-- ✅ Implement proper authentication/authorization
-
-## 🧪 Testing
-
-### Manual Testing
-
+### Running Migrations
 ```bash
-# Start backend
-cd backend && npm run dev
-
-# In another terminal, test API
-curl -X POST http://localhost:3000/api/location/validate \
-  -H "Content-Type: application/json" \
-  -d '{
-    "cafeId": "test-cafe-uuid",
-    "userId": "test-user-uuid",
-    "ssid": "TestCafeWiFi",
-    "coordinates": {
-      "lat": 37.7749,
-      "lng": -122.4194
-    }
-  }'
+npm run migrate
 ```
 
-### Testing Mobile Services
-
-```typescript
-import { CafeAccessService } from './services/cafeAccessService';
-
-// Test cafe access validation
-const cafe = {
-  cafeId: 'test-uuid',
-  wifiSSID: 'TestCafe',
-  latitude: 37.7749,
-  longitude: -122.4194,
-  radiusMeters: 50,
-};
-
-const result = await CafeAccessService.validateCafeAccess(cafe);
-console.log('Access result:', result);
+### Development Mode
+```bash
+npm run dev
 ```
 
-## 📝 License
+### Building for Production
+```bash
+npm run build
+```
+
+### Linting
+```bash
+npm run lint
+```
+
+## Architecture Decisions
+
+### Why PostgreSQL?
+- ACID compliance for user/transaction data
+- Complex queries for badge eligibility
+- Reliable data integrity
+
+### Why Redis?
+- Fast session storage
+- Distributed rate limiting
+- Real-time pub/sub for Socket.io scaling
+
+### Why JWT?
+- Stateless authentication
+- Mobile-friendly
+- Easy token rotation
+
+### Network Validation Strategy
+1. **Primary**: WiFi SSID matching (most reliable)
+2. **Fallback**: GPS geofencing (when WiFi unavailable)
+3. **Radius**: Configurable per-cafe (default 100m)
+
+## Future Enhancements
+
+- [ ] Socket.io real-time chat implementation
+- [ ] Claude AI agent integration
+- [ ] React Native mobile apps
+- [ ] Admin dashboard for cafe owners
+- [ ] Analytics and insights
+- [ ] Multi-language support
+
+## License
 
 MIT
 
-## 🤝 Contributing
+## Contributing
 
-Contributions welcome! Please read the contributing guidelines before submitting PRs.
-
-## 📧 Support
-
-For issues and questions, please open a GitHub issue.
-
----
-
-**Built with ❤️ for the Brew Me In community**
+This is a private project. For questions or suggestions, please contact the development team.

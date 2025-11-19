@@ -1,12 +1,9 @@
 import { Request, Response } from 'express';
-import { LocationService } from '../services/locationService';
-import {
+import { Location } from '../models/Location';
+import type {
   LocationValidationRequest,
   PresenceUpdateRequest,
-  NearbyCafeQuery,
 } from '../types';
-
-const locationService = new LocationService();
 
 /**
  * POST /api/location/validate
@@ -15,26 +12,18 @@ const locationService = new LocationService();
 export const validateLocation = async (req: Request, res: Response): Promise<void> => {
   try {
     const { cafeId, ssid, coordinates } = req.body;
-    const userId = req.body.userId || (req as any).user?.id; // Assuming auth middleware sets req.user
+    const userId = (req as any).user?.userId; // From auth middleware
 
     if (!cafeId) {
       res.status(400).json({
-        success: false,
-        error: {
-          message: 'cafeId is required',
-          code: 'MISSING_CAFE_ID',
-        },
+        error: 'cafeId is required',
       });
       return;
     }
 
     if (!userId) {
       res.status(401).json({
-        success: false,
-        error: {
-          message: 'User authentication required',
-          code: 'UNAUTHORIZED',
-        },
+        error: 'User authentication required',
       });
       return;
     }
@@ -46,25 +35,17 @@ export const validateLocation = async (req: Request, res: Response): Promise<voi
       userId,
     };
 
-    const result = await locationService.validateCafeAccess(validationRequest);
+    const result = await Location.validateCafeAccess(validationRequest);
 
     res.status(200).json({
       success: true,
       data: result,
-      meta: {
-        timestamp: new Date(),
-        version: 'v1',
-      },
     });
   } catch (error) {
     console.error('Error validating location:', error);
     res.status(500).json({
-      success: false,
-      error: {
-        message: 'Internal server error',
-        code: 'INTERNAL_ERROR',
-        details: error instanceof Error ? error.message : 'Unknown error',
-      },
+      error: 'Internal server error',
+      message: error instanceof Error ? error.message : 'Unknown error',
     });
   }
 };
@@ -76,27 +57,19 @@ export const validateLocation = async (req: Request, res: Response): Promise<voi
 export const updatePresence = async (req: Request, res: Response): Promise<void> => {
   try {
     const { userId, cafeId, inCafe, ssid, coordinates } = req.body;
-    const authenticatedUserId = (req as any).user?.id;
+    const authenticatedUserId = (req as any).user?.userId;
 
     // Ensure user can only update their own presence
     if (userId !== authenticatedUserId) {
       res.status(403).json({
-        success: false,
-        error: {
-          message: 'Cannot update presence for another user',
-          code: 'FORBIDDEN',
-        },
+        error: 'Cannot update presence for another user',
       });
       return;
     }
 
     if (!userId || !cafeId || typeof inCafe !== 'boolean') {
       res.status(400).json({
-        success: false,
-        error: {
-          message: 'userId, cafeId, and inCafe are required',
-          code: 'MISSING_REQUIRED_FIELDS',
-        },
+        error: 'userId, cafeId, and inCafe are required',
       });
       return;
     }
@@ -109,79 +82,56 @@ export const updatePresence = async (req: Request, res: Response): Promise<void>
       coordinates,
     };
 
-    const result = await locationService.updateUserPresence(updateRequest);
+    const result = await Location.updateUserPresence(updateRequest);
 
     res.status(200).json({
       success: true,
       data: result,
-      meta: {
-        timestamp: new Date(),
-        version: 'v1',
-      },
     });
   } catch (error) {
     console.error('Error updating presence:', error);
     res.status(500).json({
-      success: false,
-      error: {
-        message: 'Internal server error',
-        code: 'INTERNAL_ERROR',
-        details: error instanceof Error ? error.message : 'Unknown error',
-      },
+      error: 'Internal server error',
+      message: error instanceof Error ? error.message : 'Unknown error',
     });
   }
 };
 
 /**
- * GET /api/cafes/:cafeId/nearby
+ * GET /api/location/cafes/nearby
  * Get nearby cafes based on user's location
  */
 export const getNearbyCafes = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { lat, lng } = req.query;
-    const radiusMeters = req.query.radiusMeters
-      ? parseInt(req.query.radiusMeters as string, 10)
-      : 5000;
-    const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : 20;
+    const { lat, lng, radiusMeters, limit } = req.query;
 
     if (!lat || !lng) {
       res.status(400).json({
-        success: false,
-        error: {
-          message: 'lat and lng query parameters are required',
-          code: 'MISSING_COORDINATES',
-        },
+        error: 'lat and lng query parameters are required',
       });
       return;
     }
 
-    const query: NearbyCafeQuery = {
-      lat: parseFloat(lat as string),
-      lng: parseFloat(lng as string),
-      radiusMeters,
-      limit,
-    };
+    const radius = radiusMeters ? parseInt(radiusMeters as string, 10) : 5000;
+    const resultLimit = limit ? parseInt(limit as string, 10) : 20;
 
-    const cafes = await locationService.getNearbyCafes(query);
+    const cafes = await Location.getNearbyCafes(
+      parseFloat(lat as string),
+      parseFloat(lng as string),
+      radius,
+      resultLimit
+    );
 
     res.status(200).json({
       success: true,
       data: cafes,
-      meta: {
-        timestamp: new Date(),
-        version: 'v1',
-        count: cafes.length,
-      },
+      count: cafes.length,
     });
   } catch (error) {
     console.error('Error getting nearby cafes:', error);
     res.status(500).json({
-      success: false,
-      error: {
-        message: 'Internal server error',
-        code: 'INTERNAL_ERROR',
-        details: error instanceof Error ? error.message : 'Unknown error',
-      },
+      error: 'Internal server error',
+      message: error instanceof Error ? error.message : 'Unknown error',
     });
   }
 };
@@ -196,24 +146,16 @@ export const getUserPresence = async (req: Request, res: Response): Promise<void
 
     if (!userId) {
       res.status(400).json({
-        success: false,
-        error: {
-          message: 'userId is required',
-          code: 'MISSING_USER_ID',
-        },
+        error: 'userId is required',
       });
       return;
     }
 
-    const presence = await locationService.getUserPresence(userId);
+    const presence = await Location.getUserPresence(userId);
 
     if (!presence) {
       res.status(404).json({
-        success: false,
-        error: {
-          message: 'User presence not found',
-          code: 'NOT_FOUND',
-        },
+        error: 'User presence not found',
       });
       return;
     }
@@ -221,26 +163,18 @@ export const getUserPresence = async (req: Request, res: Response): Promise<void
     res.status(200).json({
       success: true,
       data: presence,
-      meta: {
-        timestamp: new Date(),
-        version: 'v1',
-      },
     });
   } catch (error) {
     console.error('Error getting user presence:', error);
     res.status(500).json({
-      success: false,
-      error: {
-        message: 'Internal server error',
-        code: 'INTERNAL_ERROR',
-        details: error instanceof Error ? error.message : 'Unknown error',
-      },
+      error: 'Internal server error',
+      message: error instanceof Error ? error.message : 'Unknown error',
     });
   }
 };
 
 /**
- * GET /api/cafes/:cafeId/users
+ * GET /api/location/cafes/:cafeId/users
  * Get all users currently in a cafe
  */
 export const getUsersInCafe = async (req: Request, res: Response): Promise<void> => {
@@ -249,78 +183,23 @@ export const getUsersInCafe = async (req: Request, res: Response): Promise<void>
 
     if (!cafeId) {
       res.status(400).json({
-        success: false,
-        error: {
-          message: 'cafeId is required',
-          code: 'MISSING_CAFE_ID',
-        },
+        error: 'cafeId is required',
       });
       return;
     }
 
-    const users = await locationService.getUsersInCafe(cafeId);
+    const users = await Location.getUsersInCafe(cafeId);
 
     res.status(200).json({
       success: true,
       data: users,
-      meta: {
-        timestamp: new Date(),
-        version: 'v1',
-        count: users.length,
-      },
+      count: users.length,
     });
   } catch (error) {
     console.error('Error getting users in cafe:', error);
     res.status(500).json({
-      success: false,
-      error: {
-        message: 'Internal server error',
-        code: 'INTERNAL_ERROR',
-        details: error instanceof Error ? error.message : 'Unknown error',
-      },
-    });
-  }
-};
-
-/**
- * POST /api/cafes/:cafeId/geofence/check
- * Check if coordinates are within cafe geofence
- */
-export const checkGeofence = async (req: Request, res: Response): Promise<void> => {
-  try {
-    const { cafeId } = req.params;
-    const { latitude, longitude } = req.body;
-
-    if (!cafeId || !latitude || !longitude) {
-      res.status(400).json({
-        success: false,
-        error: {
-          message: 'cafeId, latitude, and longitude are required',
-          code: 'MISSING_REQUIRED_FIELDS',
-        },
-      });
-      return;
-    }
-
-    const result = await locationService.checkGeofence(cafeId, latitude, longitude);
-
-    res.status(200).json({
-      success: true,
-      data: result,
-      meta: {
-        timestamp: new Date(),
-        version: 'v1',
-      },
-    });
-  } catch (error) {
-    console.error('Error checking geofence:', error);
-    res.status(500).json({
-      success: false,
-      error: {
-        message: 'Internal server error',
-        code: 'INTERNAL_ERROR',
-        details: error instanceof Error ? error.message : 'Unknown error',
-      },
+      error: 'Internal server error',
+      message: error instanceof Error ? error.message : 'Unknown error',
     });
   }
 };
