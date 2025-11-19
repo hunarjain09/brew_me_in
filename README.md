@@ -1,95 +1,142 @@
-# Brew Me In - Interest Matching & Poke System
+# brew_me_in
 
-A social networking platform for cafes that enables interest-based user discovery, poke matching, and direct messaging.
+A location-based social networking app for coffee shops, enabling temporary connections and AI-powered conversations between cafe visitors.
 
-## Features
+## Overview
 
-- **Interest-Based Discovery**: Find users with shared interests in your cafe
-- **Poke System**: Send pokes to interesting users with privacy protection
-- **Mutual Matching**: Create DM channels when both users poke each other
-- **Direct Messaging**: Chat privately with matched users
-- **Real-Time Notifications**: Socket.IO powered notifications for pokes and messages
-- **Rate Limiting**: Prevent spam with configurable rate limits
-- **Auto-Expiration**: Pokes automatically expire after 24 hours
+brew_me_in creates ephemeral social experiences within coffee shops by:
+- Generating temporary usernames for customers upon purchase
+- Enabling real-time chat with AI agent assistance
+- Rewarding regular customers with badges and perks
+- Validating physical presence through WiFi/geofencing
+- **Interest-based matching and poke system for 1:1 connections**
+- **Privacy-first direct messaging for matched users**
+
+## Implementation Status
+
+- **Component 1 (Auth & User Management)**: ✅ IMPLEMENTED
+- **Component 2 (Real-time Chat)**: 🚧 PLANNED
+- **Component 3 (Rate Limiting)**: 🚧 PLANNED
+- **Component 4 (Interest Matching & Pokes)**: ✅ IMPLEMENTED
+- **Component 5 (AI Agent Integration)**: 🚧 PLANNED
+- **Component 6 (Admin Dashboard)**: 🚧 PLANNED
+- **Component 7 (Network Validation)**: ✅ IMPLEMENTED (basic)
+- **Component 8 (Background Jobs)**: 🚧 PLANNED
 
 ## Tech Stack
 
-- **Backend**: Node.js + TypeScript + Express
-- **Database**: PostgreSQL
-- **Real-Time**: Socket.IO
-- **Background Jobs**: node-cron
+### Backend
+- **Runtime**: Node.js with TypeScript
+- **Framework**: Express.js
+- **Database**: PostgreSQL (user data, chat history, interests, pokes)
+- **Cache**: Redis (sessions, rate limiting)
+- **Real-time**: Socket.io (WebSocket connections for notifications)
+- **AI**: Anthropic Claude API
+- **Authentication**: JWT tokens
+- **Background Jobs**: node-cron (poke expiration)
+
+### Frontend
+- React Native (iOS/Android)
+- React Web
+- Socket.io Client
+
+## Project Structure
+
+```
+brew_me_in/
+├── backend/
+│   ├── src/
+│   │   ├── config/         # Configuration management
+│   │   ├── controllers/    # Request handlers
+│   │   ├── db/            # Database connections and schemas
+│   │   ├── middleware/    # Auth, validation, rate limiting
+│   │   ├── models/        # Data models
+│   │   ├── routes/        # API routes
+│   │   ├── services/      # Business logic services
+│   │   ├── jobs/          # Background job schedulers
+│   │   ├── utils/         # Utilities (JWT, validation)
+│   │   ├── types/         # TypeScript interfaces
+│   │   ├── app.ts         # Express app setup
+│   │   └── index.ts       # Server entry point
+│   ├── package.json
+│   └── tsconfig.json
+├── ARCHITECTURE.md         # Detailed architecture docs
+├── Claude.md               # AI agent development guide
+├── LIQUID_GLASS_DESIGN_GUIDE.md  # Design system
+└── README.md               # This file
+```
 
 ## Getting Started
 
 ### Prerequisites
 
-- Node.js >= 18
-- PostgreSQL >= 14
+- Node.js 18+
+- PostgreSQL 14+
+- Redis 7+ (for sessions and rate limiting)
 - npm or yarn
 
-### Installation
+### Backend Setup
 
-1. Clone the repository:
-```bash
-git clone <repository-url>
-cd brew_me_in
-```
+1. **Navigate to backend directory**
+   ```bash
+   cd backend
+   ```
 
-2. Install dependencies:
-```bash
-npm install
-```
+2. **Install dependencies**
+   ```bash
+   npm install
+   ```
 
-3. Set up environment variables:
-```bash
-cp .env.example .env
-# Edit .env with your database credentials
-```
+3. **Configure environment**
+   ```bash
+   cp .env.example .env
+   ```
 
-4. Set up the database:
-```bash
-# Create the database
-createdb brew_me_in
+   Edit `.env` with your configuration:
+   - Database credentials
+   - Redis connection
+   - JWT secrets
+   - Anthropic API key
+   - Rate limiting configuration
 
-# Run migrations
-npm run migrate
-```
+4. **Set up database**
 
-5. Start the development server:
-```bash
-npm run dev
-```
+   Create PostgreSQL database:
+   ```bash
+   createdb brew_me_in
+   ```
+
+   Run migrations:
+   ```bash
+   npm run migrate
+   ```
+
+5. **Start development server**
+   ```bash
+   npm run dev
+   ```
 
 The server will start on `http://localhost:3000`
 
-### Build for Production
+### Production Build
 
 ```bash
 npm run build
 npm start
 ```
 
+---
+
 ## API Documentation
 
-### Authentication
+All authenticated endpoints require `Authorization: Bearer <token>` header.
 
-All endpoints (except `/health`) require authentication via the `X-User-Id` header:
+### Health Check
 
 ```http
-X-User-Id: <user-uuid>
-```
+GET /health
 
-> **Note**: In production, replace this with proper JWT authentication.
-
-### Endpoints
-
-#### Health Check
-
-**GET** `/health`
-
-Returns server health status.
-
-```json
+Response:
 {
   "status": "healthy",
   "timestamp": "2025-11-19T10:00:00.000Z",
@@ -100,34 +147,124 @@ Returns server health status.
 
 ---
 
-### Interest Matching
+### Authentication Endpoints
 
-#### Discover Users
-
-**GET** `/api/matching/discover`
-
-Find users with shared interests.
-
-**Query Parameters:**
-- `cafeId` (required): UUID of the cafe
-- `interests` (optional): Comma-separated list of interests
-- `limit` (optional): Max results (default: 20)
-- `offset` (optional): Pagination offset (default: 0)
-
-**Example:**
+#### Generate Username (Barista)
 ```http
-GET /api/matching/discover?cafeId=123e4567-e89b-12d3-a456-426614174000&interests=coffee,books&limit=10
-X-User-Id: user-uuid
+POST /api/auth/barista/generate-username
+Content-Type: application/json
+
+{
+  "cafeId": "uuid",
+  "receiptId": "string"
+}
+
+Response:
+{
+  "username": "HappyOtter42",
+  "joinToken": "token-string",
+  "expiresAt": "2024-01-01T12:00:00Z"
+}
 ```
 
-**Response:**
-```json
+#### Join Cafe (Customer)
+```http
+POST /api/auth/join
+Content-Type: application/json
+
+{
+  "username": "HappyOtter42",
+  "joinToken": "token-string",
+  "cafeId": "uuid",
+  "wifiSsid": "CafeWiFi-Guest",  // Optional
+  "latitude": 37.7749,            // Optional
+  "longitude": -122.4194          // Optional
+}
+
+Response:
+{
+  "accessToken": "jwt-token",
+  "refreshToken": "jwt-refresh-token",
+  "user": { ... }
+}
+```
+
+#### Refresh Token
+```http
+POST /api/auth/refresh
+Content-Type: application/json
+
+{
+  "refreshToken": "jwt-refresh-token"
+}
+
+Response:
+{
+  "accessToken": "new-jwt-token",
+  "user": { ... }
+}
+```
+
+---
+
+### User Endpoints
+
+#### Get Current User
+```http
+GET /api/users/me
+
+Response:
+{
+  "user": {
+    "id": "uuid",
+    "username": "HappyOtter42",
+    "cafeId": "uuid",
+    "badgeStatus": "active",
+    "tipCount": 7,
+    "pokeEnabled": true,
+    ...
+  }
+}
+```
+
+#### Update Interests
+```http
+PUT /api/users/me/interests
+Content-Type: application/json
+
+{
+  "interests": ["coffee", "tech", "music"]
+}
+```
+
+#### Toggle Poke Feature
+```http
+PATCH /api/users/me/poke-enabled
+Content-Type: application/json
+
+{
+  "enabled": true
+}
+```
+
+---
+
+### Component 4: Interest Matching & Poke System
+
+#### Discover Users with Shared Interests
+
+Find users in the same cafe with shared interests, prioritized by number of matches.
+
+```http
+GET /api/matching/discover?cafeId=uuid&interests=coffee,books&limit=20&offset=0
+
+Response:
 {
   "success": true,
   "data": [
     {
-      "userId": "user-uuid",
-      "username": "johndoe",
+      "userId": "uuid",
+      "username": "HappyOtter42",
       "sharedInterests": ["coffee", "books"],
       "totalSharedInterests": 2
     }
@@ -138,12 +275,10 @@ X-User-Id: user-uuid
 
 #### Get User Interests
 
-**GET** `/api/matching/interests`
+```http
+GET /api/matching/interests
 
-Get current user's interests.
-
-**Response:**
-```json
+Response:
 {
   "success": true,
   "data": ["coffee", "books", "music"]
@@ -152,46 +287,40 @@ Get current user's interests.
 
 #### Set User Interests
 
-**POST** `/api/matching/interests`
+Replace all interests for the current user.
 
-Replace all user interests.
+```http
+POST /api/matching/interests
+Content-Type: application/json
 
-**Request Body:**
-```json
 {
   "interests": ["coffee", "books", "music"]
 }
-```
 
-**Response:**
-```json
+Response:
 {
   "success": true,
   "message": "Interests updated successfully"
 }
 ```
 
-#### Add Interest
+#### Add Single Interest
 
-**POST** `/api/matching/interests/add`
+```http
+POST /api/matching/interests/add
+Content-Type: application/json
 
-Add a single interest.
-
-**Request Body:**
-```json
 {
   "interest": "hiking"
 }
 ```
 
-#### Remove Interest
+#### Remove Single Interest
 
-**POST** `/api/matching/interests/remove`
+```http
+POST /api/matching/interests/remove
+Content-Type: application/json
 
-Remove a single interest.
-
-**Request Body:**
-```json
 {
   "interest": "hiking"
 }
@@ -201,24 +330,24 @@ Remove a single interest.
 
 ### Poke System
 
+The poke system enables privacy-first connections between users. Features:
+- Rate limited: 10 pokes per hour (configurable)
+- Mutual reveal: Can't see who poked you until you poke back
+- Auto-expiration: Pokes expire after 24 hours
+- Match creation: Mutual pokes create DM channels
+
 #### Send Poke
 
-**POST** `/api/pokes/send`
+```http
+POST /api/pokes/send
+Content-Type: application/json
 
-Send a poke to another user.
-
-**Rate Limit:** 10 pokes per hour (configurable)
-
-**Request Body:**
-```json
 {
-  "toUserId": "recipient-uuid",
+  "toUserId": "uuid",
   "sharedInterest": "coffee"
 }
-```
 
-**Response:**
-```json
+Response:
 {
   "success": true,
   "data": {
@@ -232,60 +361,54 @@ Send a poke to another user.
   },
   "message": "Poke sent successfully"
 }
-```
 
-**Errors:**
-- `404`: User not found or has pokes disabled
-- `409`: Pending poke already exists or cannot poke yourself
-- `429`: Rate limit exceeded
+Errors:
+- 404: User not found or has pokes disabled
+- 409: Pending poke already exists or cannot poke yourself
+- 429: Rate limit exceeded (10 pokes/hour)
+```
 
 #### Respond to Poke
 
-**POST** `/api/pokes/respond`
+Accept or decline a poke. If both users have poked each other, a DM channel is created.
 
-Accept or decline a poke.
+```http
+POST /api/pokes/respond
+Content-Type: application/json
 
-**Request Body:**
-```json
 {
-  "pokeId": "poke-uuid",
+  "pokeId": "uuid",
   "action": "accept"  // or "decline"
 }
-```
 
-**Response (No Match):**
-```json
+Response (No Match):
 {
   "success": true,
   "data": {
-    "poke": { /* poke object */ },
+    "poke": { ... },
     "matched": false
   },
   "message": "Poke accepted"
 }
-```
 
-**Response (Match!):**
-```json
+Response (Match!):
 {
   "success": true,
   "data": {
-    "poke": { /* poke object */ },
+    "poke": { ... },
     "matched": true,
-    "channelId": "channel-uuid"
+    "channelId": "dm-channel-uuid"
   },
   "message": "It's a match! DM channel created"
 }
 ```
 
-#### Get Pending Pokes
+#### Get Pending Pokes (Incoming)
 
-**GET** `/api/pokes/pending`
+```http
+GET /api/pokes/pending
 
-Get incoming pokes.
-
-**Response:**
-```json
+Response:
 {
   "success": true,
   "data": [
@@ -303,32 +426,39 @@ Get incoming pokes.
 }
 ```
 
-#### Get Sent Pokes
+#### Get Sent Pokes (Outgoing)
 
-**GET** `/api/pokes/sent`
+```http
+GET /api/pokes/sent
 
-Get outgoing pokes.
+Response:
+{
+  "success": true,
+  "data": [ ... ],
+  "count": 5
+}
+```
 
 ---
 
 ### Direct Messaging
 
+DM channels are created automatically when two users mutually poke each other.
+
 #### Get DM Channels
 
-**GET** `/api/dm/channels`
+```http
+GET /api/dm/channels
 
-Get all DM conversations.
-
-**Response:**
-```json
+Response:
 {
   "success": true,
   "data": [
     {
-      "channelId": "channel-uuid",
-      "user1Id": "user-uuid-1",
-      "user2Id": "user-uuid-2",
-      "cafeId": "cafe-uuid",
+      "channelId": "uuid",
+      "user1Id": "uuid",
+      "user2Id": "uuid",
+      "cafeId": "uuid",
       "createdAt": "2025-11-19T10:00:00.000Z",
       "lastMessageAt": "2025-11-19T11:00:00.000Z"
     }
@@ -339,16 +469,10 @@ Get all DM conversations.
 
 #### Get Channel Messages
 
-**GET** `/api/dm/:channelId/messages`
+```http
+GET /api/dm/:channelId/messages?limit=50&offset=0
 
-Get messages from a DM channel.
-
-**Query Parameters:**
-- `limit` (optional): Max messages (default: 50)
-- `offset` (optional): Pagination offset (default: 0)
-
-**Response:**
-```json
+Response:
 {
   "success": true,
   "data": [
@@ -366,19 +490,15 @@ Get messages from a DM channel.
 
 #### Send Message
 
-**POST** `/api/dm/:channelId/messages`
+```http
+POST /api/dm/:channelId/messages
+Content-Type: application/json
 
-Send a message in a DM channel.
-
-**Request Body:**
-```json
 {
   "content": "Hey! Love coffee too!"
 }
-```
 
-**Response:**
-```json
+Response:
 {
   "success": true,
   "data": {
@@ -394,12 +514,10 @@ Send a message in a DM channel.
 
 #### Delete Message
 
-**DELETE** `/api/dm/messages/:messageId`
+```http
+DELETE /api/dm/messages/:messageId
 
-Delete your own message.
-
-**Response:**
-```json
+Response:
 {
   "success": true,
   "message": "Message deleted successfully"
@@ -408,9 +526,9 @@ Delete your own message.
 
 ---
 
-## Real-Time Notifications
+### Real-Time Notifications (Socket.IO)
 
-Connect to Socket.IO for real-time notifications:
+Connect to Socket.IO for real-time poke and message notifications:
 
 ```javascript
 import io from 'socket.io-client';
@@ -437,42 +555,44 @@ socket.on('notification', (notification) => {
 });
 ```
 
-### Notification Types
-
-1. **poke_received**: Someone poked you
-2. **poke_matched**: Mutual poke - DM channel created
-3. **dm_message**: New DM message received
+**Notification Types:**
+1. `poke_received` - Someone poked you
+2. `poke_matched` - Mutual poke created a DM channel
+3. `dm_message` - New DM message received
 
 ---
 
 ## Database Schema
 
-### Tables
+### Core Tables (Component 1)
+- `users` - User accounts with temporary expiration
+- `cafes` - Cafe locations and configuration
+- `badges` - Badge tracking for regular customers
+- `tips` - Customer purchase records
+- `join_tokens` - Barista-generated join tokens
 
-- **users**: User accounts with poke preferences
-- **cafes**: Cafe locations
-- **user_interests**: User interest mappings
-- **pokes**: Poke records with expiration
-- **dm_channels**: DM conversation channels
-- **dm_messages**: DM message history
+### Interest Matching Tables (Component 4)
+- `user_interests` - User interest mappings
+- `pokes` - Poke records with status and expiration
+- `dm_channels` - Direct message conversation channels
+- `dm_messages` - DM message history
 
-See `src/db/schema.sql` for the complete schema.
+See `backend/src/db/schema.sql` for complete schema definitions.
 
 ---
 
 ## Background Jobs
 
 ### Poke Expiration Job
-
 Runs every 5 minutes to expire pokes older than 24 hours.
 
-Configured in `src/jobs/poke-expiration.job.ts`
+**Location:** `backend/src/jobs/poke-expiration.job.ts`
 
 ---
 
 ## Configuration
 
-Environment variables in `.env`:
+Environment variables (`.env`):
 
 ```env
 # Server
@@ -484,9 +604,20 @@ DB_HOST=localhost
 DB_PORT=5432
 DB_NAME=brew_me_in
 DB_USER=postgres
-DB_PASSWORD=postgres
+DB_PASSWORD=your-password
 
-# Rate Limiting
+# Redis
+REDIS_HOST=localhost
+REDIS_PORT=6379
+
+# JWT
+JWT_SECRET=your-secret-key
+JWT_REFRESH_SECRET=your-refresh-secret
+
+# Anthropic
+ANTHROPIC_API_KEY=sk-...
+
+# Rate Limiting (Poke System)
 POKE_RATE_LIMIT_WINDOW_MS=3600000  # 1 hour
 POKE_RATE_LIMIT_MAX=10             # 10 pokes per hour
 
@@ -496,95 +627,66 @@ POKE_EXPIRATION_HOURS=24
 
 ---
 
-## Project Structure
+## Development
 
+### Available Scripts
+
+```bash
+# Start development server (auto-reload)
+npm run dev
+
+# Build TypeScript
+npm run build
+
+# Start production server
+npm start
+
+# Run database migrations
+npm run migrate
+
+# Type checking
+npx tsc --noEmit
 ```
-brew_me_in/
-├── src/
-│   ├── db/
-│   │   ├── connection.ts      # Database connection pool
-│   │   ├── schema.sql         # Database schema
-│   │   └── migrate.ts         # Migration runner
-│   ├── jobs/
-│   │   └── poke-expiration.job.ts  # Background jobs
-│   ├── middleware/
-│   │   ├── auth.middleware.ts      # Authentication
-│   │   └── rateLimit.middleware.ts # Rate limiting
-│   ├── routes/
-│   │   ├── matching.routes.ts  # Interest matching endpoints
-│   │   ├── poke.routes.ts      # Poke system endpoints
-│   │   └── dm.routes.ts        # DM endpoints
-│   ├── services/
-│   │   ├── matching.service.ts      # Matching logic
-│   │   ├── poke.service.ts          # Poke logic
-│   │   ├── dm.service.ts            # DM logic
-│   │   └── notification.service.ts  # Socket.IO notifications
-│   ├── types/
-│   │   └── matching.types.ts   # TypeScript interfaces
-│   └── index.ts                # Express server
-├── package.json
-├── tsconfig.json
-├── .env.example
-└── README.md
-```
+
+### Testing Locally
+
+Use the provided API examples with tools like:
+- curl
+- Postman
+- Thunder Client (VS Code)
 
 ---
 
-## Key Features Explained
+## Key Features
 
 ### Privacy-First Poke System
-
 - Users can't see who poked them until they poke back
 - Only mutual pokes create DM channels
 - Pokes expire after 24 hours for privacy
 
-### Intelligent Matching
-
+### Intelligent Matching Algorithm
 - Prioritizes users with multiple shared interests
 - Filters out poke-disabled users
 - Excludes users you've already matched with
 
 ### Rate Limiting
-
 - Prevents spam: 10 pokes per hour (configurable)
 - No rate limit on DM messages within matched channels
+- Redis-backed token bucket algorithm
 
 ### Real-Time Updates
-
 - Instant notifications for pokes and messages
 - WebSocket-based for low latency
 - Automatic reconnection handling
 
 ---
 
-## Development
+## Documentation
 
-### Running Tests
-
-```bash
-npm test
-```
-
-### Type Checking
-
-```bash
-npx tsc --noEmit
-```
-
-### Linting
-
-```bash
-npx eslint src/
-```
-
----
-
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Submit a pull request
+- **Architecture Guide**: See `ARCHITECTURE.md`
+- **AI Agent Guide**: See `Claude.md` for development guidelines
+- **Design System**: See `LIQUID_GLASS_DESIGN_GUIDE.md`
+- **Database Schema**: See `backend/src/db/schema.sql`
 
 ---
 
@@ -596,4 +698,4 @@ MIT
 
 ## Support
 
-For issues and questions, please open an issue on GitHub.
+For issues and questions, please check the documentation or open an issue on GitHub.
