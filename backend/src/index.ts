@@ -7,6 +7,8 @@ import { logger } from './config/logger';
 import { ChatHandler } from './socket/chatHandler';
 import notificationService from './services/notification.service';
 import { startPokeExpirationJob } from './jobs/poke-expiration.job';
+import { Server as SocketIOServer } from 'socket.io';
+import { initializeAdminSocket } from './socket/adminHandler';
 
 async function startServer() {
   try {
@@ -32,6 +34,17 @@ async function startServer() {
     // Initialize Component 4: Notification Service (Socket.IO)
     notificationService.initialize(httpServer);
     logger.info('Socket.io notification service initialized (Component 4)');
+
+    // Initialize Component 6: Admin Dashboard WebSocket
+    const io = new SocketIOServer(httpServer, {
+      cors: {
+        origin: config.corsOrigin || '*',
+        methods: ['GET', 'POST'],
+        credentials: true,
+      },
+    });
+    const adminNamespace = initializeAdminSocket(io);
+    logger.info('Socket.io admin dashboard initialized (Component 6)');
 
     // Start Component 4: Poke expiration background job
     startPokeExpirationJob();
@@ -91,6 +104,21 @@ API Endpoints:
   GET    /api/dm/:channelId/messages
   POST   /api/dm/:channelId/messages
   DELETE /api/dm/messages/:messageId
+
+  [Admin Dashboard - Component 6]
+  POST   /api/admin/auth/login
+  POST   /api/admin/auth/register
+  GET    /api/admin/auth/me
+  GET    /api/admin/users
+  POST   /api/admin/moderation/mute
+  POST   /api/admin/moderation/unmute
+  POST   /api/admin/moderation/ban
+  POST   /api/admin/moderation/unban
+  DELETE /api/admin/moderation/messages/:messageId
+  GET    /api/admin/moderation/history
+  GET    /api/admin/analytics
+  GET    /api/admin/analytics/realtime
+  GET    /api/admin/analytics/export
 
   [Health]
   GET    /api/health

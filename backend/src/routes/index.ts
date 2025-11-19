@@ -7,6 +7,7 @@ import rateLimitRoutes from './rateLimitRoutes';
 import matchingRoutes from './matching.routes';
 import pokeRoutes from './poke.routes';
 import dmRoutes from './dm.routes';
+import adminRoutes from './adminRoutes';
 
 const router = Router();
 
@@ -25,6 +26,9 @@ router.use('/v1', rateLimitRoutes);
 router.use('/matching', matchingRoutes);
 router.use('/pokes', pokeRoutes);
 router.use('/dm', dmRoutes);
+
+// Component 6: Moderator Dashboard & Admin Tools
+router.use('/admin', adminRoutes);
 
 // Health check endpoint
 router.get('/health', (req, res) => {
