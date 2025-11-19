@@ -1,3 +1,7 @@
+<div align="center">
+  <img src="logo.png" alt="Brew Me In Logo" width="200"/>
+</div>
+
 # brew_me_in
 
 > A location-based social networking platform for coffee shops, enabling ephemeral connections through real-time chat, AI-powered conversations, and interest-based matching.
