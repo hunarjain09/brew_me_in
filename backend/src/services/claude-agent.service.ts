@@ -15,7 +15,7 @@ export class ClaudeAgentService {
 
   constructor() {
     this.anthropic = new Anthropic({
-      apiKey: config.ANTHROPIC_API_KEY,
+      apiKey: config.anthropic.apiKey,
     });
 
     this.initializeFallbackResponses();

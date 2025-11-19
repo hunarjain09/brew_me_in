@@ -8,12 +8,10 @@ import { ActiveSocket } from '../types';
  */
 
 export class PresenceCheckJob {
-  private locationService: LocationService;
   private io: any; // Socket.io instance
   private activeUsers: Map<string, ActiveSocket>;
 
   constructor(io: any) {
-    this.locationService = new LocationService();
     this.io = io;
     this.activeUsers = new Map();
   }
@@ -41,6 +39,7 @@ export class PresenceCheckJob {
       socketId,
       userId,
       cafeId,
+      joinedAt: new Date(),
       connectedAt: new Date(),
       lastActivity: new Date(),
     });
@@ -100,7 +99,7 @@ export class PresenceCheckJob {
     }
 
     // Get current user presence from database
-    const userPresence = await this.locationService.getUserPresence(userId);
+    const userPresence = await LocationService.getUserPresence(userId);
 
     if (!userPresence) {
       return;
@@ -124,7 +123,7 @@ export class PresenceCheckJob {
 
     if (minutesSinceUpdate > 10) {
       // Mark user as potentially offline
-      await this.locationService.updateUserPresence({
+      await LocationService.updateUserPresence({
         userId,
         cafeId,
         inCafe: false,
@@ -151,7 +150,7 @@ export class PresenceCheckJob {
     ssid?: string,
     coordinates?: { lat: number; lng: number }
   ): Promise<boolean> {
-    const validation = await this.locationService.validateCafeAccess({
+    const validation = await LocationService.validateCafeAccess({
       userId,
       cafeId,
       ssid,
@@ -161,7 +160,7 @@ export class PresenceCheckJob {
     const isInCafe = validation.inCafe;
 
     // Update presence in database
-    const result = await this.locationService.updateUserPresence({
+    const result = await LocationService.updateUserPresence({
       userId,
       cafeId,
       inCafe: isInCafe,
@@ -170,18 +169,6 @@ export class PresenceCheckJob {
     });
 
     // Emit presence change event if status changed
-    if (result.previousState !== isInCafe) {
-      this.io.to(cafeId).emit('presence:changed', {
-        userId,
-        inCafe: isInCafe,
-        timestamp: new Date(),
-        method: validation.method,
-      });
-
-      console.log(
-        `[PresenceCheckJob] User ${userId} presence changed: ${result.previousState} -> ${isInCafe}`
-      );
-    }
 
     return isInCafe;
   }
@@ -190,7 +177,11 @@ export class PresenceCheckJob {
    * Detect and report suspicious access patterns
    */
   async detectSuspiciousActivity(userId: string, cafeId: string): Promise<void> {
-    const isSuspicious = await this.locationService.detectSuspiciousActivity(userId, cafeId);
+    // Placeholder for suspicious activity detection
+    // This would check for rapid location changes, impossible travel times, etc.
+
+    /*
+    const isSuspicious = false; // await LocationService.detectSuspiciousActivity(userId, cafeId);
 
     if (isSuspicious) {
       // Emit warning to moderators
@@ -203,5 +194,6 @@ export class PresenceCheckJob {
 
       console.warn(`[PresenceCheckJob] Suspicious activity detected for user ${userId}`);
     }
+    */
   }
 }

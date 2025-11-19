@@ -38,12 +38,12 @@ async function startServer() {
     logger.info('Poke expiration job started (Component 4)');
 
     // Start server
-    httpServer.listen(config.port, () => {
+    httpServer.listen(config.server.port, () => {
       console.log(`
 🚀 brew_me_in Backend Server Started
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Environment: ${config.env}
-Port: ${config.port}
+Environment: ${config.server.env}
+Port: ${config.server.port}
 Database: ${config.database.name}
 Redis: ${config.redis.host}:${config.redis.port}
 WebSocket: Enabled (Socket.io)
@@ -96,7 +96,7 @@ API Endpoints:
   GET    /api/health
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
       `);
-      logger.info(`Server listening on port ${config.port}`);
+      logger.info(`Server listening on port ${config.server.port}`);
     });
   } catch (error) {
     logger.error('Failed to start server:', error);

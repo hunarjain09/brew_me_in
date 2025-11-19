@@ -49,7 +49,7 @@ export const getClient = async () => {
 
   // Monkey patch the query method to track the last query
   client.query = (...args: any[]) => {
-    client.lastQuery = args;
+    (client as any).lastQuery = args;
     return query.apply(client, args as any);
   };
 

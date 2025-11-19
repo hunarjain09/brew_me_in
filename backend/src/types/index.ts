@@ -33,11 +33,16 @@ export interface Tip {
 export interface Cafe {
   id: string;
   name: string;
-  wifiSsid: string;
+  wifiSsid?: string;
+  location?: string;
+  description?: string;
   latitude?: number;
   longitude?: number;
   geofenceRadius?: number;
-  createdAt: Date;
+  createdAt?: Date;
+  created_at?: Date;
+  updatedAt?: Date;
+  updated_at?: Date;
 }
 
 export interface JWTPayload {
@@ -314,4 +319,27 @@ export interface ModeratorJWTPayload {
   cafeId: string;
   role: string;
   email: string;
+}
+
+// Express Request extensions
+declare global {
+  namespace Express {
+    interface Request {
+      user?: {
+        userId: string;
+        username: string;
+        cafeId: string;
+      };
+    }
+  }
+}
+
+// Active Socket for presence tracking
+export interface ActiveSocket {
+  userId: string;
+  cafeId: string;
+  socketId: string;
+  joinedAt: Date;
+  connectedAt: Date;
+  lastActivity: Date;
 }

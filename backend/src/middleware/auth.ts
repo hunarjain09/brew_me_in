@@ -140,5 +140,5 @@ export const requirePermission = (permission: string) => {
 // Generate JWT token for moderators
 export const generateToken = (payload: ModeratorJWTPayload): string => {
   const expiresIn = process.env.JWT_EXPIRES_IN || '24h';
-  return jwt.sign(payload, JWT_SECRET, { expiresIn });
+  return jwt.sign(payload, JWT_SECRET, { expiresIn } as jwt.SignOptions);
 };

@@ -9,12 +9,10 @@ import { LocationService } from '../services/locationService';
 export class LocationEventHandler {
   private io: Server;
   private presenceJob: PresenceCheckJob;
-  private locationService: LocationService;
 
   constructor(io: Server, presenceJob: PresenceCheckJob) {
     this.io = io;
     this.presenceJob = presenceJob;
-    this.locationService = new LocationService();
   }
 
   /**
@@ -63,7 +61,7 @@ export class LocationEventHandler {
 
     try {
       // Validate cafe access
-      const validation = await this.locationService.validateCafeAccess({
+      const validation = await LocationService.validateCafeAccess({
         userId,
         cafeId,
         ssid,
@@ -85,7 +83,7 @@ export class LocationEventHandler {
       this.presenceJob.registerActiveUser(socket.id, userId, cafeId);
 
       // Update presence
-      await this.locationService.updateUserPresence({
+      await LocationService.updateUserPresence({
         userId,
         cafeId,
         inCafe: true,
@@ -94,7 +92,7 @@ export class LocationEventHandler {
       });
 
       // Get current users in cafe
-      const usersInCafe = await this.locationService.getUsersInCafe(cafeId);
+      const usersInCafe = await LocationService.getUsersInCafe(cafeId);
 
       // Notify user of successful join
       socket.emit('cafe:joined', {
@@ -133,7 +131,7 @@ export class LocationEventHandler {
       socket.leave(cafeId);
 
       // Update presence
-      await this.locationService.updateUserPresence({
+      await LocationService.updateUserPresence({
         userId,
         cafeId,
         inCafe: false,
@@ -203,11 +201,11 @@ export class LocationEventHandler {
       socket.join(`nearby:${userId}`);
 
       // Get current user presence to find their location
-      const presence = await this.locationService.getUserPresence(userId);
+      const presence = await LocationService.getUserPresence(userId);
 
       if (presence && presence.lastLatitude && presence.lastLongitude) {
         // Get nearby cafes
-        const nearbyCafes = await this.locationService.getNearbyCafes({
+        const nearbyCafes = await LocationService.getNearbyCafes({
           lat: Number(presence.lastLatitude),
           lng: Number(presence.lastLongitude),
           radiusMeters: radius,
@@ -253,7 +251,7 @@ export class LocationEventHandler {
           const hasActiveConnection = sockets.some((s: any) => s.userId === userId);
 
           if (!hasActiveConnection) {
-            await this.locationService.updateUserPresence({
+            await LocationService.updateUserPresence({
               userId,
               cafeId,
               inCafe: false,
