@@ -116,19 +116,19 @@ const Users: React.FC = () => {
   };
 
   return (
-    <div className="bg-white rounded-lg shadow">
-      <div className="p-6 border-b">
-        <h2 className="text-2xl font-bold mb-4">User Management</h2>
+    <div className="glass-card rounded-2xl">
+      <div className="p-6 border-b border-white/20">
+        <h2 className="text-2xl font-bold mb-4 text-white drop-shadow-lg">User Management</h2>
 
-        <div className="flex space-x-4">
+        <div className="flex space-x-4 relative z-10">
           <input
             type="text"
             placeholder="Search users..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="flex-1 px-4 py-2 border rounded"
+            className="glass-input flex-1 px-4 py-2 rounded-xl text-white placeholder-white/50 font-medium"
           />
-          <label className="flex items-center space-x-2">
+          <label className="flex items-center space-x-2 glass-light px-4 py-2 rounded-xl text-white font-medium">
             <input
               type="checkbox"
               checked={filterBanned}
@@ -139,7 +139,7 @@ const Users: React.FC = () => {
           </label>
           <button
             onClick={fetchUsers}
-            className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+            className="glass-btn-primary px-4 py-2 rounded-xl text-white font-medium"
           >
             Refresh
           </button>
@@ -149,76 +149,76 @@ const Users: React.FC = () => {
       <div className="p-6">
         {isLoading ? (
           <div className="text-center py-12">
-            <p className="text-gray-500">Loading users...</p>
+            <p className="text-white/70 text-lg">Loading users...</p>
           </div>
         ) : users.length === 0 ? (
           <div className="text-center py-12">
-            <p className="text-gray-500">No users found</p>
+            <p className="text-white/70 text-lg">No users found</p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
+          <div className="overflow-x-auto relative z-10">
+            <table className="min-w-full">
+              <thead className="glass-light">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                  <th className="px-6 py-3 text-left text-xs font-bold text-white uppercase tracking-wider">
                     Username
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                  <th className="px-6 py-3 text-left text-xs font-bold text-white uppercase tracking-wider">
                     Receipt ID
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                  <th className="px-6 py-3 text-left text-xs font-bold text-white uppercase tracking-wider">
                     Messages
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                  <th className="px-6 py-3 text-left text-xs font-bold text-white uppercase tracking-wider">
                     Status
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                  <th className="px-6 py-3 text-left text-xs font-bold text-white uppercase tracking-wider">
                     Last Seen
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                  <th className="px-6 py-3 text-left text-xs font-bold text-white uppercase tracking-wider">
                     Actions
                   </th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+              <tbody className="divide-y divide-white/10">
                 {users.map((user) => (
-                  <tr key={user.id}>
+                  <tr key={user.id} className="hover:bg-white/5 transition">
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-gray-900">{user.username}</div>
+                      <div className="text-sm font-semibold text-white">{user.username}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-500">{user.receipt_id || 'N/A'}</div>
+                      <div className="text-sm text-white/70 font-mono">{user.receipt_id || 'N/A'}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">{user.message_count || 0}</div>
+                      <div className="text-sm text-white font-medium">{user.message_count || 0}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex space-x-2">
                         {user.is_banned && (
-                          <span className="px-2 py-1 text-xs bg-red-100 text-red-800 rounded">
+                          <span className="px-3 py-1 text-xs bg-red-400/30 text-red-100 rounded-full font-semibold border border-red-300/30">
                             Banned
                           </span>
                         )}
                         {user.is_muted && (
-                          <span className="px-2 py-1 text-xs bg-yellow-100 text-yellow-800 rounded">
+                          <span className="px-3 py-1 text-xs bg-yellow-400/30 text-yellow-100 rounded-full font-semibold border border-yellow-300/30">
                             Muted
                           </span>
                         )}
                         {!user.is_banned && !user.is_muted && (
-                          <span className="px-2 py-1 text-xs bg-green-100 text-green-800 rounded">
+                          <span className="px-3 py-1 text-xs bg-green-400/30 text-green-100 rounded-full font-semibold border border-green-300/30">
                             Active
                           </span>
                         )}
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-white/70">
                       {new Date(user.last_seen_at).toLocaleString()}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm space-x-2">
                       {user.is_muted ? (
                         <button
                           onClick={() => handleUnmute(user)}
-                          className="text-green-600 hover:text-green-900"
+                          className="text-green-300 hover:text-green-100 font-semibold"
                         >
                           Unmute
                         </button>
@@ -228,7 +228,7 @@ const Users: React.FC = () => {
                             setSelectedUser(user);
                             setShowMuteModal(true);
                           }}
-                          className="text-yellow-600 hover:text-yellow-900"
+                          className="text-yellow-300 hover:text-yellow-100 font-semibold"
                         >
                           Mute
                         </button>
@@ -236,14 +236,14 @@ const Users: React.FC = () => {
                       {user.is_banned ? (
                         <button
                           onClick={() => handleUnban(user)}
-                          className="text-green-600 hover:text-green-900"
+                          className="text-green-300 hover:text-green-100 font-semibold"
                         >
                           Unban
                         </button>
                       ) : (
                         <button
                           onClick={() => handleBan(user)}
-                          className="text-red-600 hover:text-red-900"
+                          className="text-red-300 hover:text-red-100 font-semibold"
                         >
                           Ban
                         </button>
@@ -259,13 +259,13 @@ const Users: React.FC = () => {
 
       {/* Mute Modal */}
       {showMuteModal && selectedUser && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md">
-            <h3 className="text-xl font-bold mb-4">Mute User: {selectedUser.username}</h3>
+        <div className="glass-modal-backdrop fixed inset-0 flex items-center justify-center z-50 animate-fade-in">
+          <div className="glass-modal rounded-2xl p-6 w-full max-w-md animate-glass-enter">
+            <h3 className="text-xl font-bold mb-4 text-white drop-shadow">Mute User: {selectedUser.username}</h3>
 
-            <div className="space-y-4">
+            <div className="space-y-4 relative z-10">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-semibold text-white/90 mb-2">
                   Duration (minutes)
                 </label>
                 <input
@@ -273,18 +273,18 @@ const Users: React.FC = () => {
                   value={muteDuration}
                   onChange={(e) => setMuteDuration(Number(e.target.value))}
                   min={1}
-                  className="w-full px-3 py-2 border rounded"
+                  className="glass-input w-full px-4 py-2 rounded-xl text-white font-medium"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-semibold text-white/90 mb-2">
                   Reason (optional)
                 </label>
                 <textarea
                   value={muteReason}
                   onChange={(e) => setMuteReason(e.target.value)}
-                  className="w-full px-3 py-2 border rounded"
+                  className="glass-input w-full px-4 py-2 rounded-xl text-white font-medium"
                   rows={3}
                 />
               </div>
@@ -292,7 +292,8 @@ const Users: React.FC = () => {
               <div className="flex space-x-3">
                 <button
                   onClick={handleMute}
-                  className="flex-1 px-4 py-2 bg-yellow-500 text-white rounded hover:bg-yellow-600"
+                  className="glass-btn-primary flex-1 px-4 py-2 rounded-xl text-white font-semibold"
+                  style={{ background: 'linear-gradient(135deg, rgba(234, 179, 8, 0.9), rgba(202, 138, 4, 0.9))' }}
                 >
                   Mute User
                 </button>
@@ -302,7 +303,7 @@ const Users: React.FC = () => {
                     setSelectedUser(null);
                     setMuteReason('');
                   }}
-                  className="flex-1 px-4 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400"
+                  className="glass-btn-secondary flex-1 px-4 py-2 rounded-xl text-white font-semibold"
                 >
                   Cancel
                 </button>
