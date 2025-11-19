@@ -3,7 +3,7 @@ import { Server as HTTPServer } from 'http';
 import jwt from 'jsonwebtoken';
 import { moderationCache } from '../config/redis';
 import logger from '../utils/logger';
-import { JWTPayload, ActivityEvent, DashboardStats } from '../types';
+import { ModeratorJWTPayload, ActivityEvent, DashboardStats } from '../types';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 
@@ -25,7 +25,7 @@ export const initializeWebSocket = (httpServer: HTTPServer) => {
     }
 
     try {
-      const payload = jwt.verify(token, JWT_SECRET) as JWTPayload;
+      const payload = jwt.verify(token, JWT_SECRET) as ModeratorJWTPayload;
       socket.data.moderator = payload;
       next();
     } catch (error) {
@@ -34,7 +34,7 @@ export const initializeWebSocket = (httpServer: HTTPServer) => {
   });
 
   io.on('connection', (socket) => {
-    const moderator: JWTPayload = socket.data.moderator;
+    const moderator: ModeratorJWTPayload = socket.data.moderator;
     logger.info('Moderator connected to WebSocket', {
       moderatorId: moderator.moderatorId,
       socketId: socket.id,

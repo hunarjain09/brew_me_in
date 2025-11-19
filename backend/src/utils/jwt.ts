@@ -7,14 +7,14 @@ import crypto from 'crypto';
 export class JWTService {
   static generateAccessToken(payload: JWTPayload): string {
     return jwt.sign(payload, config.jwt.secret, {
-      expiresIn: config.jwt.expiresIn,
-    });
+      expiresIn: config.jwt.expiresIn as string | number,
+    } as jwt.SignOptions);
   }
 
   static generateRefreshToken(payload: JWTPayload): string {
     return jwt.sign(payload, config.jwt.refreshSecret, {
-      expiresIn: config.jwt.refreshExpiresIn,
-    });
+      expiresIn: config.jwt.refreshExpiresIn as string | number,
+    } as jwt.SignOptions);
   }
 
   static async generateTokenPair(payload: JWTPayload): Promise<AuthTokens> {

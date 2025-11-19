@@ -315,3 +315,24 @@ export interface ModeratorJWTPayload {
   role: string;
   email: string;
 }
+
+// Express Request extensions
+declare global {
+  namespace Express {
+    interface Request {
+      user?: {
+        userId: string;
+        username: string;
+        cafeId: string;
+      };
+    }
+  }
+}
+
+// Active Socket for presence tracking
+export interface ActiveSocket {
+  userId: string;
+  cafeId: string;
+  socketId: string;
+  joinedAt: Date;
+}
