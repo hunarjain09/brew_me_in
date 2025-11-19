@@ -1,6 +1,22 @@
 # brew_me_in Backend
 
-Express.js backend API for the brew_me_in cafe social networking platform.
+Express.js backend API for brew_me_in - a location-based cafe social networking platform with AI agent integration.
+
+## Overview
+
+This backend supports two major components:
+
+**Component 1: Authentication & User Management**
+- Temporary user accounts (24-hour validity)
+- JWT-based authentication
+- Network validation (WiFi + GPS)
+- Badge system and tip tracking
+
+**Component 5: AI Agent Integration**
+- Claude AI integration with multiple personalities
+- Streaming responses via Socket.IO
+- Redis-based caching and analytics
+- Rate limiting for cost management
 
 ## Quick Start
 
@@ -12,7 +28,7 @@ npm install
 cp .env.example .env
 # Edit .env with your credentials
 
-# Run migrations
+# Run database migrations
 npm run migrate
 
 # Start development server
@@ -30,32 +46,85 @@ npm run dev
 ## API Structure
 
 ### Routes
-- `/api/auth/*` - Authentication endpoints
-- `/api/users/*` - User management endpoints
-- `/api/badges/*` - Badge and tip endpoints
-- `/api/health` - Health check endpoint
+
+**Authentication** (`/api/auth/*`)
+- `POST /api/auth/barista/generate-username` - Generate temporary username
+- `POST /api/auth/join` - Join cafe with network validation
+- `POST /api/auth/refresh` - Refresh access token
+
+**User Management** (`/api/users/*`)
+- `GET /api/users/me` - Get current user info
+- `PUT /api/users/me/interests` - Update user interests
+- `PUT /api/users/me/poke-enabled` - Toggle poke feature
+
+**Badges** (`/api/badges/*`)
+- `POST /api/badges/record-tip` - Record tip and check eligibility
+- `GET /api/badges/status` - Get badge status and perks
+
+**AI Agent** (`/api/agent/*`)
+- `POST /api/agent/query` - Query the AI agent
+- `GET /api/agent/config/:cafeId` - Get agent configuration
+- `PUT /api/agent/config/:cafeId` - Update agent configuration
+- `PUT /api/agent/context/:cafeId` - Update cafe context
+- `POST /api/agent/proactive-message` - Generate proactive message
+- `GET /api/agent/analytics/:cafeId` - Get query analytics
+- `POST /api/agent/pregenerate/:cafeId` - Pre-cache common responses
+
+**Health**
+- `GET /api/health` - Health check endpoint
 
 ### Models
+
+**Component 1: Auth & User Management**
 - `User` - Temporary user accounts
-- `Badge` - User badge status
-- `Tip` - Tip tracking
-- `Cafe` - Cafe information
-- `JoinToken` - Barista-generated tokens
+- `Badge` - User badge status and eligibility
+- `Tip` - Tip tracking for badge system
+- `Cafe` - Cafe information and configuration
+- `JoinToken` - Barista-generated invitation tokens
+
+**Component 5: AI Agent**
+- Agent configurations (in-memory, migrate to database)
+- Cafe contexts (in-memory, migrate to database)
+- Query analytics (Redis-based)
 
 ### Middleware
+
 - `authenticate` - JWT authentication
-- `validate` - Request validation (Zod schemas)
+- `validate` - Request validation using Zod schemas
 - `rateLimit` - Redis-backed rate limiting
+- `errorHandler` - Centralized error handling
 
 ## Environment Variables
 
 See `.env.example` for all required variables.
 
-Critical variables:
+### Critical Variables
+
+**Database**
 - `DATABASE_URL` - PostgreSQL connection string
-- `JWT_SECRET` - Secret for signing JWT tokens
+- `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD` - Database credentials
+
+**Redis**
 - `REDIS_HOST` - Redis server host
-- `ANTHROPIC_API_KEY` - Claude API key (for future chat features)
+- `REDIS_PORT` - Redis server port
+
+**Authentication**
+- `JWT_SECRET` - Secret for signing JWT tokens
+- `JWT_REFRESH_SECRET` - Secret for refresh tokens
+- `JWT_EXPIRES_IN` - Token expiration time (default: 24h)
+
+**Claude API**
+- `ANTHROPIC_API_KEY` - Claude API key for AI agent
+
+**Badge Settings**
+- `BADGE_TIP_THRESHOLD` - Tips required for badge (default: 5)
+- `BADGE_TIP_WINDOW_DAYS` - Days to count tips (default: 7)
+- `BADGE_DURATION_DAYS` - Badge validity (default: 30)
+
+**AI Agent**
+- `GLOBAL_RATE_LIMIT_MS` - Global cooldown between queries (default: 2000)
+- `USER_RATE_LIMIT_DAILY` - Per-user daily limit (default: 100)
+- `AGENT_CACHE_TTL` - Cache TTL in seconds (default: 3600)
 
 ## Database
 
@@ -66,9 +135,9 @@ npm run migrate
 ```
 
 This will:
-1. Create all tables
-2. Set up indexes
-3. Create helper functions
+1. Create all tables (users, badges, tips, cafes, join_tokens, refresh_tokens)
+2. Set up indexes for performance
+3. Create PostgreSQL helper functions
 4. Insert sample cafe data
 
 ### Manual Database Operations
@@ -78,10 +147,13 @@ This will:
 psql brew_me_in
 
 # Check users
-SELECT * FROM users;
+SELECT * FROM users WHERE expires_at > NOW();
 
 # Check badges
-SELECT * FROM badges;
+SELECT * FROM badges WHERE expires_at > NOW();
+
+# Check tips
+SELECT * FROM tips ORDER BY created_at DESC LIMIT 10;
 
 # Clean up expired data
 SELECT cleanup_expired_users();
@@ -89,7 +161,91 @@ SELECT cleanup_expired_badges();
 SELECT cleanup_expired_join_tokens();
 ```
 
+### Database Schema Highlights
+
+**users table**
+- 24-hour temporary accounts
+- Username uniqueness per cafe
+- Auto-expiration tracking
+
+**badges table**
+- 30-day validity
+- Automatic eligibility checking
+- Tip threshold tracking
+
+**tips table**
+- Tracks all tips for badge eligibility
+- 7-day rolling window
+
+## AI Agent Features
+
+### Personalities
+
+1. **Bartender** - Warm and professional
+2. **Quirky** - Playful with frequent emojis
+3. **Historian** - Educational and thoughtful
+4. **Sarcastic** - Witty with dry humor
+5. **Professional** - Efficient and direct
+6. **Custom** - User-defined personality
+
+### Caching Strategy
+
+**Query Cache**
+- Key: `agent:cache:{cafeId}:{questionHash}`
+- TTL: 1 hour (configurable)
+- Invalidation: On context/config changes
+
+**Analytics Tracking**
+- Total queries per day
+- Response times
+- Cache hit rate
+- Popular questions (sorted set)
+
+### Rate Limiting
+
+**Global Limit**
+- 2 seconds between ANY agent queries
+- Prevents system-wide spam
+
+**User Limit**
+- 100 queries per day per user
+- 24-hour rolling window
+
+### Socket.IO Integration
+
+**Namespace**: `/agent`
+
+**Events:**
+- `query:stream` - Start streaming query
+- `cafe:join` - Join cafe room for proactive messages
+- `cafe:leave` - Leave cafe room
+
+**Listeners:**
+- `query:start` - Query started
+- `query:chunk` - Response chunk
+- `query:complete` - Query complete
+- `query:error` - Query error
+- `proactive:message` - Agent announcement
+
 ## Development
+
+### Project Structure
+
+```
+src/
+├── config/           # Environment and personality configs
+├── controllers/      # HTTP request handlers
+├── db/              # Database connections and schema
+├── middleware/      # Auth, validation, rate limiting
+├── models/          # Business logic & data access
+├── routes/          # API endpoint definitions
+├── services/        # AI agent services
+├── socket/          # Socket.IO handlers
+├── types/           # TypeScript interfaces
+├── utils/           # JWT, validation utilities
+├── app.ts           # Express app setup
+└── index.ts         # Server entry point
+```
 
 ### Adding New Endpoints
 
@@ -109,16 +265,20 @@ SELECT cleanup_expired_join_tokens();
 
 ### Manual API Testing
 
+**Health check**
 ```bash
-# Health check
 curl http://localhost:3000/api/health
+```
 
-# Generate username (barista)
+**Generate username (barista)**
+```bash
 curl -X POST http://localhost:3000/api/auth/barista/generate-username \
   -H "Content-Type: application/json" \
   -d '{"cafeId": "cafe-uuid", "receiptId": "RCPT123"}'
+```
 
-# Join cafe (customer)
+**Join cafe (customer)**
+```bash
 curl -X POST http://localhost:3000/api/auth/join \
   -H "Content-Type: application/json" \
   -d '{
@@ -127,8 +287,22 @@ curl -X POST http://localhost:3000/api/auth/join \
     "cafeId": "cafe-uuid",
     "wifiSsid": "CafeWiFi-Guest"
   }'
+```
 
-# Get current user
+**Query AI agent**
+```bash
+curl -X POST http://localhost:3000/api/agent/query \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  -d '{
+    "cafeId": "cafe_123",
+    "question": "What is popular today?",
+    "userId": "user_456"
+  }'
+```
+
+**Get current user**
+```bash
 curl http://localhost:3000/api/users/me \
   -H "Authorization: Bearer YOUR_JWT_TOKEN"
 ```
@@ -141,6 +315,7 @@ Different limits for different endpoints:
 - Auth endpoints: 5 req/15min
 - Username generation: 10 req/hour per cafe
 - Tips: 3 req/minute
+- AI agent: 2s global cooldown + 100 req/day per user
 - General API: 100 req/15min
 
 ### Authentication
@@ -157,6 +332,10 @@ Tokens expire after 24 hours. Use refresh tokens to get new access tokens.
 User location verified via:
 1. WiFi SSID matching (primary)
 2. GPS geofencing (fallback, 100m radius)
+
+### Input Validation
+
+All endpoints use Zod schemas for validation. SQL injection prevented via parameterized queries.
 
 ## Monitoring
 
@@ -181,6 +360,19 @@ Returns:
 }
 ```
 
+### AI Agent Analytics
+
+```bash
+curl http://localhost:3000/api/agent/analytics/cafe_123 \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN"
+```
+
+Returns:
+- Total queries
+- Cache hit rate
+- Average response time
+- Popular questions
+
 ## Troubleshooting
 
 ### Database Connection Failed
@@ -203,21 +395,17 @@ Clear Redis rate limit keys:
 redis-cli KEYS "rl:*" | xargs redis-cli DEL
 ```
 
-## Architecture
+### AI Agent Issues
 
-```
-src/
-├── config/         Configuration management
-├── controllers/    Business logic
-├── db/            Database connections
-├── middleware/    Express middleware
-├── models/        Data access layer
-├── routes/        API endpoints
-├── types/         TypeScript definitions
-├── utils/         Helper functions
-├── app.ts         Express app
-└── index.ts       Server entry
-```
+**Invalid API key**
+- Check `ANTHROPIC_API_KEY` in `.env`
+
+**Rate limit exceeded**
+- Wait for cooldown or increase limits
+
+**Slow responses**
+- Check cache hit rate
+- Pre-generate common responses
 
 ## Performance
 
@@ -232,21 +420,29 @@ Critical indexes:
 
 Redis used for:
 - Rate limiting counters
-- Session storage (future)
-- Real-time pub/sub (future)
+- AI query responses
+- Session storage
+- Analytics tracking
+
+### AI Response Times
+
+- **Cached**: ~50-100ms
+- **Uncached**: ~1-2s
+- **Streaming**: Starts <500ms
 
 ## Deployment
 
 ### Production Checklist
 
 - [ ] Set `NODE_ENV=production`
-- [ ] Use strong `JWT_SECRET`
+- [ ] Use strong `JWT_SECRET` and `JWT_REFRESH_SECRET`
 - [ ] Configure CORS origins
 - [ ] Set up SSL/TLS
 - [ ] Enable database backups
 - [ ] Configure Redis persistence
 - [ ] Set up monitoring/logging
-- [ ] Review rate limits
+- [ ] Review rate limits for your scale
+- [ ] Monitor Anthropic API usage and costs
 
 ### Building
 
@@ -267,6 +463,34 @@ Or with PM2:
 pm2 start dist/index.js --name brew-me-in
 ```
 
+## Cost Management
+
+### AI Agent Costs
+
+Based on Claude Sonnet 4.5 pricing:
+- Cached query: ~$0.0001
+- New query: ~$0.003-0.005
+- 1000 queries/day: ~$1-2 (with 40% cache hit rate)
+
+### Optimization Tips
+
+1. Pre-cache common questions
+2. Use appropriate maxTokens (default: 300)
+3. Enable proactive caching
+4. Monitor cache hit rate
+5. Adjust rate limits based on usage
+
 ## Support
 
 For issues or questions, refer to the main project README or contact the development team.
+
+## Documentation
+
+- **Main README**: [../README.md](../README.md)
+- **Architecture**: [../ARCHITECTURE.md](../ARCHITECTURE.md)
+- **AI Agent Guide**: [../Claude.md](../Claude.md)
+- **API Examples**: [./API_EXAMPLES.md](./API_EXAMPLES.md)
+
+## License
+
+MIT
