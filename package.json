@@ -19,9 +19,11 @@
     "test:e2e:headed": "npm run test:e2e:headed -w frontend",
     "test:e2e:debug": "npm run test:e2e:debug -w frontend",
     "test:e2e:report": "npm run test:e2e:report -w frontend",
-    "test:e2e:update-snapshots": "npm run test:e2e:update-snapshots -w frontend"
+    "test:e2e:update-snapshots": "npm run test:e2e:update-snapshots -w frontend",
+    "prepare": "npx husky install"
   },
   "devDependencies": {
-    "concurrently": "^8.2.2"
+    "concurrently": "^8.2.2",
+    "husky": "^8.0.3"
   }
 }

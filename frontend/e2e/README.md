@@ -2,6 +2,21 @@
 
 This directory contains End-to-End (E2E) tests using Playwright with visual snapshot testing to verify the application is working as intended.
 
+## ⚠️ Important: Generate Snapshots Locally First
+
+Before CI tests will pass, you **must** generate baseline snapshots locally:
+
+```bash
+# From the root directory:
+npm run test:e2e:update-snapshots
+
+# Or from the frontend directory:
+cd frontend
+npx playwright test --update-snapshots
+```
+
+After generating snapshots, review and commit the snapshot files in `e2e/*-snapshots/` directories. CI will then compare against these baselines.
+
 ## Overview
 
 The E2E tests use Playwright to:

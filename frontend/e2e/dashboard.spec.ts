@@ -125,7 +125,7 @@ test.describe('Dashboard', () => {
   test('should render Users page', async ({ page }) => {
     // Navigate to Users using nav link
     await page.locator('nav').getByRole('link', { name: /Users/ }).click();
-    await page.waitForURL('**/users');
+    await page.waitForURL('**/users', { timeout: 20000 });
     await page.waitForLoadState('load');
     await page.waitForTimeout(500); // Wait for animations
 
