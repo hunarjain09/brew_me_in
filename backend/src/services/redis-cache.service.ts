@@ -14,10 +14,10 @@ export class RedisCacheService {
   constructor() {
     this.client = createClient({
       socket: {
-        host: config.REDIS_HOST,
-        port: config.REDIS_PORT,
+        host: config.redis.host,
+        port: config.redis.port,
       },
-      password: config.REDIS_PASSWORD,
+      password: config.redis.password,
     });
 
     this.client.on('error', (err) => {
@@ -64,7 +64,7 @@ export class RedisCacheService {
     cafeId: string,
     question: string,
     response: string,
-    ttl: number = config.AGENT_CACHE_TTL
+    ttl: number = config.agent.cacheTTL
   ): Promise<void> {
     try {
       const questionHash = this.hashKey(question.toLowerCase().trim());
@@ -118,7 +118,7 @@ export class RedisCacheService {
       }
 
       const timeSinceLastQuery = Date.now() - parseInt(lastQuery, 10);
-      if (timeSinceLastQuery < config.GLOBAL_RATE_LIMIT_MS) {
+      if (timeSinceLastQuery < config.agent.globalRateLimitMs) {
         return false;
       }
 
@@ -140,20 +140,20 @@ export class RedisCacheService {
 
       if (!count) {
         await this.client.setEx(key, 86400, '1'); // 24 hours
-        return { allowed: true, remaining: config.USER_RATE_LIMIT_DAILY - 1 };
+        return { allowed: true, remaining: config.agent.userRateLimitDaily - 1 };
       }
 
       const currentCount = parseInt(count, 10);
 
-      if (currentCount >= config.USER_RATE_LIMIT_DAILY) {
+      if (currentCount >= config.agent.userRateLimitDaily) {
         return { allowed: false, remaining: 0 };
       }
 
       await this.client.incr(key);
-      return { allowed: true, remaining: config.USER_RATE_LIMIT_DAILY - currentCount - 1 };
+      return { allowed: true, remaining: config.agent.userRateLimitDaily - currentCount - 1 };
     } catch (error) {
       console.error('Error checking user rate limit:', error);
-      return { allowed: true, remaining: config.USER_RATE_LIMIT_DAILY };
+      return { allowed: true, remaining: config.agent.userRateLimitDaily };
     }
   }
 
@@ -238,7 +238,7 @@ export class RedisCacheService {
   async preCacheCommonQuestions(cafeId: string, questions: Array<{ question: string; answer: string }>): Promise<void> {
     try {
       for (const { question, answer } of questions) {
-        await this.cacheAgentResponse(cafeId, question, answer, config.COMMON_QUERIES_CACHE_TTL);
+        await this.cacheAgentResponse(cafeId, question, answer, config.agent.commonQueriesCacheTTL);
       }
     } catch (error) {
       console.error('Error pre-caching questions:', error);

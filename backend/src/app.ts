@@ -33,7 +33,7 @@ app.use((err: any, req: express.Request, res: express.Response, next: express.Ne
 
   res.status(statusCode).json({
     error: message,
-    ...(config.env === 'development' && { stack: err.stack }),
+    ...(config.server.env === 'development' && { stack: err.stack }),
   });
 });
 

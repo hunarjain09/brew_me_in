@@ -33,11 +33,16 @@ export interface Tip {
 export interface Cafe {
   id: string;
   name: string;
-  wifiSsid: string;
+  wifiSsid?: string;
+  location?: string;
+  description?: string;
   latitude?: number;
   longitude?: number;
   geofenceRadius?: number;
-  createdAt: Date;
+  createdAt?: Date;
+  created_at?: Date;
+  updatedAt?: Date;
+  updated_at?: Date;
 }
 
 export interface JWTPayload {
@@ -335,4 +340,6 @@ export interface ActiveSocket {
   cafeId: string;
   socketId: string;
   joinedAt: Date;
+  connectedAt: Date;
+  lastActivity: Date;
 }

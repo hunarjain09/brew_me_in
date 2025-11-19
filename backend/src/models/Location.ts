@@ -23,7 +23,7 @@ export class Location {
     const { cafeId, ssid, coordinates, userId } = request;
 
     // Get cafe location details
-    const cafeResult = await db.query<Cafe>(
+    const cafeResult = await db.query(
       'SELECT * FROM cafes WHERE id = $1',
       [cafeId]
     );
@@ -103,7 +103,7 @@ export class Location {
     const { userId, cafeId, inCafe, ssid, coordinates } = request;
 
     // Check if presence record exists
-    const existingResult = await db.query<UserPresence>(
+    const existingResult = await db.query(
       'SELECT * FROM user_presence WHERE user_id = $1',
       [userId]
     );
@@ -112,7 +112,7 @@ export class Location {
 
     if (existingResult.rows.length === 0) {
       // Insert new presence record
-      const result = await db.query<UserPresence>(
+      const result = await db.query(
         `INSERT INTO user_presence
          (user_id, cafe_id, in_cafe, last_seen_in_cafe, current_ssid, last_latitude, last_longitude, validation_method)
          VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
@@ -136,7 +136,7 @@ export class Location {
       };
     } else {
       // Update existing presence record
-      const result = await db.query<UserPresence>(
+      const result = await db.query(
         `UPDATE user_presence
          SET cafe_id = $1,
              in_cafe = $2,
@@ -181,7 +181,7 @@ export class Location {
     const bbox = getBoundingBox({ latitude: lat, longitude: lng }, radiusMeters);
 
     // Query cafes within bounding box
-    const result = await db.query<Cafe>(
+    const result = await db.query(
       `SELECT * FROM cafes
        WHERE latitude BETWEEN $1 AND $2
          AND longitude BETWEEN $3 AND $4
@@ -219,7 +219,7 @@ export class Location {
    * Get all users currently in a specific cafe
    */
   static async getUsersInCafe(cafeId: string): Promise<UserPresence[]> {
-    const result = await db.query<UserPresence>(
+    const result = await db.query(
       `SELECT * FROM user_presence
        WHERE cafe_id = $1 AND in_cafe = true
        ORDER BY last_seen_in_cafe DESC`,
@@ -233,7 +233,7 @@ export class Location {
    * Get user's current presence status
    */
   static async getUserPresence(userId: string): Promise<UserPresence | null> {
-    const result = await db.query<UserPresence>(
+    const result = await db.query(
       'SELECT * FROM user_presence WHERE user_id = $1',
       [userId]
     );
@@ -246,7 +246,7 @@ export class Location {
    */
   static async detectSuspiciousActivity(userId: string, cafeId: string): Promise<boolean> {
     // Get recent access logs for this user
-    const result = await db.query<AccessLog>(
+    const result = await db.query(
       `SELECT * FROM access_logs
        WHERE user_id = $1
        ORDER BY created_at DESC
