@@ -8,6 +8,8 @@ interface AgentConfiguration {
   responseTime: 'fast' | 'balanced' | 'thorough';
   personality: string;
   specializations: string[];
+  customPrompt?: string;
+  proactiveMessagesEnabled?: boolean;
 }
 
 const AgentConfig: React.FC = () => {
@@ -17,6 +19,8 @@ const AgentConfig: React.FC = () => {
     responseTime: 'fast',
     personality: 'friendly',
     specializations: [],
+    customPrompt: '',
+    proactiveMessagesEnabled: false,
   });
   const [queries, setQueries] = useState<any[]>([]);
   const [stats, setStats] = useState<any>(null);
@@ -130,13 +134,50 @@ const AgentConfig: React.FC = () => {
             <label className="block text-sm font-semibold text-white/90 mb-2">
               Personality
             </label>
-            <input
-              type="text"
+            <select
               value={config.personality}
               onChange={(e) => setConfig({ ...config, personality: e.target.value })}
+              className="glass-input w-full px-4 py-2 rounded-xl text-white font-medium"
+            >
+              <option value="friendly">Friendly - Warm and welcoming</option>
+              <option value="professional">Professional - Formal and business-like</option>
+              <option value="casual">Casual - Relaxed and laid-back</option>
+              <option value="quirky">Quirky - Playful and humorous</option>
+              <option value="bartender">Bartender - Knowledgeable and conversational</option>
+              <option value="barista">Barista - Coffee enthusiast and energetic</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-semibold text-white/90 mb-2">
+              Custom System Prompt (Optional)
+            </label>
+            <textarea
+              value={config.customPrompt}
+              onChange={(e) => setConfig({ ...config, customPrompt: e.target.value })}
               className="glass-input w-full px-4 py-2 rounded-xl text-white placeholder-white/50 font-medium"
-              placeholder="e.g., friendly, professional, casual"
+              placeholder="Add custom instructions for the AI agent..."
+              rows={4}
             />
+            <p className="text-xs text-white/60 mt-1">
+              Override the default personality with your own custom instructions for how the agent should behave.
+            </p>
+          </div>
+
+          <div className="flex items-center justify-between glass-light p-4 rounded-xl">
+            <div>
+              <h3 className="text-lg font-semibold text-white">Proactive Messages</h3>
+              <p className="text-sm text-white/70">Allow agent to send proactive messages to users</p>
+            </div>
+            <label className="relative inline-flex items-center cursor-pointer">
+              <input
+                type="checkbox"
+                checked={config.proactiveMessagesEnabled}
+                onChange={(e) => setConfig({ ...config, proactiveMessagesEnabled: e.target.checked })}
+                className="sr-only peer"
+              />
+              <div className="w-11 h-6 bg-white/20 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300/50 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-white/30 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+            </label>
           </div>
 
           <div>

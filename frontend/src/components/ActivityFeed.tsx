@@ -3,12 +3,14 @@ import { useWebSocket } from '../hooks/useWebSocket';
 import { useAuth } from '../context/AuthContext';
 import apiClient from '../api/client';
 import { format } from 'date-fns';
+import toast from 'react-hot-toast';
 
 const ActivityFeed: React.FC = () => {
   const { activities } = useWebSocket();
   const { cafe } = useAuth();
   const [filter, setFilter] = useState<string>('all');
   const [historicalActivities, setHistoricalActivities] = useState<any[]>([]);
+  const [deletingMessageId, setDeletingMessageId] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchActivities = async () => {
@@ -34,6 +36,26 @@ const ActivityFeed: React.FC = () => {
     filter === 'all'
       ? allActivities
       : allActivities.filter((a) => a.type === filter);
+
+  const handleDeleteMessage = async (messageId: string) => {
+    if (!confirm('Are you sure you want to delete this message?')) return;
+
+    setDeletingMessageId(messageId);
+    try {
+      await apiClient.delete(`/admin/messages/${messageId}`, {
+        data: { reason: 'Deleted by moderator' },
+      });
+
+      // Remove message from local state
+      setHistoricalActivities((prev) => prev.filter((a) => a.id !== messageId));
+      toast.success('Message deleted successfully');
+    } catch (error) {
+      console.error('Failed to delete message:', error);
+      toast.error('Failed to delete message');
+    } finally {
+      setDeletingMessageId(null);
+    }
+  };
 
   return (
     <div className="glass-card rounded-2xl">
@@ -116,6 +138,18 @@ const ActivityFeed: React.FC = () => {
                     </div>
                   )}
                 </div>
+
+                {activity.type === 'message' && activity.id && (
+                  <div className="flex-shrink-0">
+                    <button
+                      onClick={() => handleDeleteMessage(activity.id)}
+                      disabled={deletingMessageId === activity.id}
+                      className="px-3 py-1 text-xs rounded-lg bg-red-500/30 text-red-100 border border-red-400/30 hover:bg-red-500/50 disabled:opacity-50 font-semibold transition-all"
+                    >
+                      {deletingMessageId === activity.id ? 'Deleting...' : 'Delete'}
+                    </button>
+                  </div>
+                )}
               </div>
             ))}
           </div>

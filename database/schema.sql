@@ -7,10 +7,16 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE TABLE cafes (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   name VARCHAR(255) NOT NULL,
-  location VARCHAR(255),
   description TEXT,
+  location VARCHAR(255),
+  wifi_ssid VARCHAR(255),
+  latitude DECIMAL(10, 8),
+  longitude DECIMAL(11, 8),
+  geofence_radius INTEGER DEFAULT 100,
+  operating_hours JSONB,
   created_at TIMESTAMP DEFAULT NOW(),
-  updated_at TIMESTAMP DEFAULT NOW()
+  updated_at TIMESTAMP DEFAULT NOW(),
+  UNIQUE(wifi_ssid)
 );
 
 -- Users table (cafe customers)

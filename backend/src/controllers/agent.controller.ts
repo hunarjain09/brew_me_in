@@ -155,7 +155,17 @@ export class AgentController {
         return;
       }
 
-      // TODO: Add authentication check for cafe owner
+      // Verify moderator has access to this cafe
+      const moderator = (req as any).moderator;
+      if (!moderator) {
+        res.status(401).json({ error: 'Authentication required' });
+        return;
+      }
+
+      if (moderator.cafeId !== cafeId) {
+        res.status(403).json({ error: 'Access denied to this cafe' });
+        return;
+      }
 
       const currentConfig = getOrCreateAgentConfig(cafeId);
 
@@ -275,6 +285,18 @@ export class AgentController {
         return;
       }
 
+      // Verify moderator has access to this cafe
+      const moderator = (req as any).moderator;
+      if (!moderator) {
+        res.status(401).json({ error: 'Authentication required' });
+        return;
+      }
+
+      if (moderator.cafeId !== cafeId) {
+        res.status(403).json({ error: 'Access denied to this cafe' });
+        return;
+      }
+
       const currentContext = getOrCreateCafeContext(cafeId);
 
       const updatedContext: CafeContext = {
@@ -305,6 +327,18 @@ export class AgentController {
 
       if (!cafeId) {
         res.status(400).json({ error: 'Cafe ID is required' });
+        return;
+      }
+
+      // Verify moderator has access to this cafe
+      const moderator = (req as any).moderator;
+      if (!moderator) {
+        res.status(401).json({ error: 'Authentication required' });
+        return;
+      }
+
+      if (moderator.cafeId !== cafeId) {
+        res.status(403).json({ error: 'Access denied to this cafe' });
         return;
       }
 
