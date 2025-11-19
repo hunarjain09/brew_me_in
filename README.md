@@ -14,7 +14,7 @@ brew_me_in creates ephemeral social experiences within coffee shops by:
 ## Implementation Status
 
 - **Component 1 (Auth & User Management)**: ✅ IMPLEMENTED
-- **Component 2 (Real-time Chat)**: 🚧 PLANNED
+- **Component 2 (Real-time Chat)**: ✅ IMPLEMENTED
 - **Component 3 (Rate Limiting & Spam Prevention)**: ✅ IMPLEMENTED
 - **Component 4 (Interest Matching)**: 🚧 PLANNED
 - **Component 5 (AI Agent Integration)**: 🚧 PLANNED
@@ -115,7 +115,18 @@ brew_me_in/
 - **Tracking**: Automatic tip counting and badge assignment
 - **Eligibility**: Real-time badge status checking
 
-### 3. Rate Limiting & Spam Prevention (Component 3)
+### 3. Real-time Chat (Component 2)
+- **WebSocket Communication**: Socket.io for bidirectional real-time messaging
+- **Message Persistence**: PostgreSQL storage with soft deletion
+- **Message Caching**: Redis cache of last 100 messages per cafe
+- **User Presence**: Real-time tracking of online users in each cafe
+- **Typing Indicators**: Live typing status notifications
+- **System Messages**: Join/leave notifications
+- **Topic Extraction**: Automatic detection of trending conversation topics
+- **Message History**: REST API for retrieving past messages
+- **Room Management**: Automatic cafe room joining/leaving
+
+### 4. Rate Limiting & Spam Prevention (Component 3)
 
 #### Rate Limiting
 - **Token Bucket Algorithm** for efficient, distributed rate limiting
@@ -141,7 +152,7 @@ Heuristic-based spam detection with multiple checks:
 - **Hard Block**: Message rejection for spam
 - **24-Hour Mute**: Automatic mute for severe violations
 
-### 4. Security Features
+### 5. Security Features
 - Rate limiting on all endpoints
 - JWT token rotation
 - Network-based authentication
