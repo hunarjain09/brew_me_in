@@ -182,15 +182,23 @@ router.get(
         [cafeId]
       );
 
-      // Get flagged messages count (would come from Redis in production)
-      const flaggedCount = 0; // Placeholder
+      // Get flagged messages count from moderation actions
+      const flaggedResult = await query(
+        `SELECT COUNT(DISTINCT ma.id) as flagged_count
+         FROM moderation_actions ma
+         INNER JOIN users u ON ma.target_user_id = u.id
+         WHERE u.cafe_id = $1
+           AND ma.action IN ('delete_message', 'warn', 'mute', 'ban')
+           AND ma.created_at >= NOW() - INTERVAL '24 hours'`,
+        [cafeId]
+      );
 
       res.json({
         activeUsers: parseInt(statsResult.rows[0].active_users) || 0,
         totalMessages: parseInt(statsResult.rows[0].total_messages) || 0,
         messagesLastHour: parseInt(statsResult.rows[0].messages_last_hour) || 0,
         agentQueries: parseInt(agentResult.rows[0].agent_queries) || 0,
-        flaggedMessages: flaggedCount,
+        flaggedMessages: parseInt(flaggedResult.rows[0].flagged_count) || 0,
       });
     } catch (error) {
       logger.error('Get realtime stats error', { error, cafeId });

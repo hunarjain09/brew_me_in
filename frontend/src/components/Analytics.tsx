@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import apiClient from '../api/client';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { format, subDays } from 'date-fns';
 import toast from 'react-hot-toast';
 
@@ -9,6 +9,7 @@ const Analytics: React.FC = () => {
   const { cafe } = useAuth();
   const [analytics, setAnalytics] = useState<any[]>([]);
   const [summary, setSummary] = useState<any>(null);
+  const [hourlyDistribution, setHourlyDistribution] = useState<any[]>([]);
   const [dateRange, setDateRange] = useState(30);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -27,6 +28,7 @@ const Analytics: React.FC = () => {
 
         setAnalytics(response.data.analytics);
         setSummary(response.data.summary);
+        setHourlyDistribution(response.data.hourly_distribution || []);
       } catch (error) {
         console.error('Failed to fetch analytics:', error);
         toast.error('Failed to load analytics');
@@ -168,6 +170,57 @@ const Analytics: React.FC = () => {
                 />
               </LineChart>
             </ResponsiveContainer>
+          </div>
+        )}
+      </div>
+
+      {/* Peak Hours Visualization */}
+      <div className="glass-card rounded-2xl p-6">
+        <h3 className="text-xl font-bold mb-4 text-white drop-shadow-lg">Peak Hours Analysis</h3>
+        {isLoading ? (
+          <div className="flex justify-center items-center h-64">
+            <p className="text-white/70 text-lg">Loading peak hours data...</p>
+          </div>
+        ) : hourlyDistribution.length === 0 ? (
+          <div className="flex justify-center items-center h-64">
+            <p className="text-white/70 text-lg">No peak hours data available</p>
+          </div>
+        ) : (
+          <div className="glass-light rounded-xl p-4 relative z-10">
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={hourlyDistribution}>
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.2)" />
+                <XAxis
+                  dataKey="hour"
+                  tickFormatter={(value) => `${value}:00`}
+                  stroke="rgba(255,255,255,0.8)"
+                  label={{ value: 'Hour of Day', position: 'insideBottom', offset: -5, fill: 'rgba(255,255,255,0.8)' }}
+                />
+                <YAxis
+                  stroke="rgba(255,255,255,0.8)"
+                  label={{ value: 'Messages', angle: -90, position: 'insideLeft', fill: 'rgba(255,255,255,0.8)' }}
+                />
+                <Tooltip
+                  labelFormatter={(value) => `${value}:00 - ${value}:59`}
+                  contentStyle={{
+                    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+                    backdropFilter: 'blur(16px)',
+                    border: '1px solid rgba(255, 255, 255, 0.2)',
+                    borderRadius: '12px',
+                    color: 'white',
+                  }}
+                />
+                <Bar
+                  dataKey="message_count"
+                  fill="#60A5FA"
+                  name="Messages"
+                  radius={[8, 8, 0, 0]}
+                />
+              </BarChart>
+            </ResponsiveContainer>
+            <p className="text-sm text-white/70 text-center mt-4">
+              Message distribution by hour of day for the selected date range
+            </p>
           </div>
         )}
       </div>

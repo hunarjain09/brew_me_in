@@ -7,6 +7,7 @@ import ActivityFeed from '../components/ActivityFeed';
 import Analytics from '../components/Analytics';
 import Users from '../components/Users';
 import AgentConfig from '../components/AgentConfig';
+import CafeSettings from '../components/CafeSettings';
 
 const Dashboard: React.FC = () => {
   const { moderator, cafe, logout } = useAuth();
@@ -19,6 +20,7 @@ const Dashboard: React.FC = () => {
     { name: 'Analytics', path: '/analytics', icon: '📈' },
     { name: 'Users', path: '/users', icon: '👥' },
     { name: 'Agent Config', path: '/agent', icon: '🤖' },
+    { name: 'Cafe Settings', path: '/settings', icon: '⚙️' },
   ];
 
   return (
@@ -118,6 +120,7 @@ const Dashboard: React.FC = () => {
               <Route path="/analytics" element={<Analytics />} />
               <Route path="/users" element={<Users />} />
               <Route path="/agent" element={<AgentConfig />} />
+              <Route path="/settings" element={<CafeSettings />} />
             </Routes>
           </main>
         </div>
