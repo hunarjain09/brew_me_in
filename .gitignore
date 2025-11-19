@@ -58,6 +58,11 @@ coverage/
 *.test.ts.snap
 .nyc_output/
 
+# Playwright
+test-results/
+playwright-report/
+playwright/.cache/
+
 # Cache
 .cache/
 .eslintcache
