@@ -12,6 +12,7 @@ build/
 *.js
 *.js.map
 *.d.ts
+!vite-env.d.ts
 *.tsbuildinfo
 
 # Environment variables
