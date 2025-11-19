@@ -1,7 +1,11 @@
 import { test, expect } from '@playwright/test';
+import { mockWebSocketWithStats } from './fixtures/mock-websocket';
 
 test.describe('Dashboard', () => {
   test.beforeEach(async ({ page }) => {
+    // Mock WebSocket to prevent connection errors
+    await mockWebSocketWithStats(page);
+
     // Mock authentication state
     await page.goto('/');
     await page.evaluate(() => {

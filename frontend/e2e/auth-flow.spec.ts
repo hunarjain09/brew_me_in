@@ -1,7 +1,11 @@
 import { test, expect } from '@playwright/test';
+import { mockWebSocketWithStats } from './fixtures/mock-websocket';
 
 test.describe('Authentication Flow', () => {
   test.beforeEach(async ({ page }) => {
+    // Mock WebSocket to prevent connection errors
+    await mockWebSocketWithStats(page);
+
     // Clear any existing auth state
     await page.goto('/');
     await page.evaluate(() => {

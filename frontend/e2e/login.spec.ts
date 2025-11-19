@@ -1,7 +1,11 @@
 import { test, expect } from '@playwright/test';
+import { mockWebSocket } from './fixtures/mock-websocket';
 
 test.describe('Login Page', () => {
   test.beforeEach(async ({ page }) => {
+    // Mock WebSocket to prevent connection errors
+    await mockWebSocket(page);
+
     await page.goto('/login');
   });
 
