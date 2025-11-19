@@ -84,8 +84,8 @@ test.describe('Dashboard', () => {
   test('should render Overview page', async ({ page }) => {
     // Navigate to Overview (default page)
     await page.goto('/');
-    await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(1000); // Wait for animations
+    await page.waitForLoadState('load');
+    await page.waitForTimeout(500); // Wait for animations
 
     // Take full page snapshot
     await expect(page).toHaveScreenshot('dashboard-overview.png', {
@@ -98,8 +98,8 @@ test.describe('Dashboard', () => {
     // Navigate to Activity
     await page.click('text=Activity');
     await page.waitForURL('**/activity');
-    await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(1000); // Wait for animations
+    await page.waitForLoadState('load');
+    await page.waitForTimeout(500); // Wait for animations
 
     // Take full page snapshot
     await expect(page).toHaveScreenshot('dashboard-activity.png', {
@@ -112,8 +112,8 @@ test.describe('Dashboard', () => {
     // Navigate to Analytics
     await page.click('text=Analytics');
     await page.waitForURL('**/analytics');
-    await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(1000); // Wait for animations
+    await page.waitForLoadState('load');
+    await page.waitForTimeout(500); // Wait for animations
 
     // Take full page snapshot
     await expect(page).toHaveScreenshot('dashboard-analytics.png', {
@@ -126,8 +126,8 @@ test.describe('Dashboard', () => {
     // Navigate to Users
     await page.click('text=Users');
     await page.waitForURL('**/users');
-    await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(1000); // Wait for animations
+    await page.waitForLoadState('load');
+    await page.waitForTimeout(500); // Wait for animations
 
     // Take full page snapshot
     await expect(page).toHaveScreenshot('dashboard-users.png', {
@@ -140,8 +140,8 @@ test.describe('Dashboard', () => {
     // Navigate to Agent Config
     await page.click('text=Agent Config');
     await page.waitForURL('**/agent');
-    await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(1000); // Wait for animations
+    await page.waitForLoadState('load');
+    await page.waitForTimeout(500); // Wait for animations
 
     // Take full page snapshot
     await expect(page).toHaveScreenshot('dashboard-agent-config.png', {
@@ -188,8 +188,8 @@ test.describe('Dashboard', () => {
     // Set mobile viewport
     await page.setViewportSize({ width: 375, height: 667 });
     await page.reload();
-    await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(1000);
+    await page.waitForLoadState('load');
+    await page.waitForTimeout(500);
 
     // Take mobile snapshot
     await expect(page).toHaveScreenshot('dashboard-mobile.png', {
@@ -202,8 +202,8 @@ test.describe('Dashboard', () => {
     // Set tablet viewport
     await page.setViewportSize({ width: 768, height: 1024 });
     await page.reload();
-    await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(1000);
+    await page.waitForLoadState('load');
+    await page.waitForTimeout(500);
 
     // Take tablet snapshot
     await expect(page).toHaveScreenshot('dashboard-tablet.png', {
