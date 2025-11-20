@@ -17,6 +17,14 @@ export default defineConfig({
   reporter: 'html',
   /* Set timeout for tests - 30 seconds per test */
   timeout: 30000,
+  
+  /* Add screenshot tolerance for cross-platform compatibility */
+  expect: {
+    toHaveScreenshot: {
+      maxDiffPixels: 2000,
+    },
+  },
+  
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
   use: {
     /* Base URL to use in actions like `await page.goto('/')`. */
