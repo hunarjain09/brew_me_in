@@ -8,7 +8,7 @@
     "build": "tsc",
     "start": "node dist/index.js",
     "scheduler": "ts-node src/scheduler/index.ts",
-    "migrate": "node dist/db/migrate.js",
+    "migrate": "ts-node src/db/migrate.ts",
     "lint": "eslint src/**/*.ts",
     "format": "prettier --write src/**/*.ts",
     "test": "jest",
