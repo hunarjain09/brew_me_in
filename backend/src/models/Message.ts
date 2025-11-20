@@ -4,30 +4,41 @@ import { v4 as uuidv4 } from 'uuid';
 
 export class MessageModel {
   static async create(data: {
-    userId: string | null;
+    userId?: string | null;
     username: string;
     cafeId: string;
     content: string;
     messageType?: 'user' | 'agent' | 'system' | 'barista';
     metadata?: any;
+    agentId?: string | null;
+    replyToMessageId?: string | null;
+    mentionedAgents?: string[];
+    isStreaming?: boolean;
   }): Promise<Message> {
     const id = uuidv4();
     const messageType = data.messageType || 'user';
 
     const query = `
-      INSERT INTO messages (id, user_id, username, cafe_id, content, message_type, metadata)
-      VALUES ($1, $2, $3, $4, $5, $6, $7)
+      INSERT INTO messages (
+        id, user_id, username, cafe_id, content, message_type, metadata,
+        agent_id, reply_to_message_id, mentioned_agents, is_streaming
+      )
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
       RETURNING *
     `;
 
     const result = await db.query(query, [
       id,
-      data.userId,
+      data.userId || null,
       data.username,
       data.cafeId,
       data.content,
       messageType,
       data.metadata ? JSON.stringify(data.metadata) : null,
+      data.agentId || null,
+      data.replyToMessageId || null,
+      data.mentionedAgents || null,
+      data.isStreaming || false,
     ]);
 
     return this.mapRow(result.rows[0]);
@@ -102,6 +113,23 @@ export class MessageModel {
     return parseInt(result.rows[0].count);
   }
 
+  static async updateContent(id: string, content: string): Promise<Message | null> {
+    const query = `
+      UPDATE messages
+      SET content = $1, is_streaming = false
+      WHERE id = $2
+      RETURNING *
+    `;
+
+    const result = await db.query(query, [content, id]);
+
+    if (result.rows.length === 0) {
+      return null;
+    }
+
+    return this.mapRow(result.rows[0]);
+  }
+
   private static mapRow(row: any): Message {
     return {
       id: row.id,
@@ -113,6 +141,10 @@ export class MessageModel {
       metadata: row.metadata,
       createdAt: row.created_at,
       deletedAt: row.deleted_at,
+      agentId: row.agent_id,
+      replyToMessageId: row.reply_to_message_id,
+      mentionedAgents: row.mentioned_agents,
+      isStreaming: row.is_streaming,
     };
   }
 }

@@ -145,6 +145,81 @@ export interface Message {
   };
   createdAt: Date;
   deletedAt?: Date;
+  agentId?: string | null;
+  replyToMessageId?: string | null;
+  mentionedAgents?: string[];
+  isStreaming?: boolean;
+}
+
+// Chat Agents
+export type PersonalityType = 'bartender' | 'quirky' | 'historian' | 'sarcastic' | 'professional' | 'custom';
+export type ProactivityLevel = 'silent' | 'occasional' | 'active';
+export type AgentStatus = 'online' | 'offline' | 'busy';
+export type InteractionType = 'mention' | 'proactive' | 'contextual';
+export type ContextType = 'system' | 'knowledge' | 'instruction';
+
+export interface ChatAgent {
+  id: string;
+  cafeId: string;
+  name: string;
+  username: string;
+  avatarUrl?: string;
+  personality: PersonalityType;
+  customPrompt?: string;
+  proactivity: ProactivityLevel;
+  enabled: boolean;
+  status: AgentStatus;
+  metadata?: Record<string, any>;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface AgentContext {
+  id: string;
+  agentId: string;
+  contextType: ContextType;
+  content: string;
+  priority: number;
+  enabled: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface AgentInteraction {
+  id: string;
+  agentId: string;
+  userId: string | null;
+  messageId: string | null;
+  interactionType: InteractionType;
+  query: string;
+  response?: string;
+  processingTimeMs?: number;
+  tokenCount?: number;
+  success: boolean;
+  errorMessage?: string;
+  metadata?: Record<string, any>;
+  createdAt: Date;
+}
+
+export interface AgentRateLimit {
+  id: string;
+  userId: string;
+  agentId: string;
+  messageCount: number;
+  windowStart: Date;
+  lastMessageAt?: Date;
+  totalMessages: number;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface RateLimitCheck {
+  allowed: boolean;
+  currentCount: number;
+  maxMessages: number;
+  remaining?: number;
+  windowResetAt?: Date;
+  secondsUntilReset?: number;
 }
 
 export interface SocketData {
@@ -160,6 +235,8 @@ export interface ClientToServerEvents {
   'typing:start': (data: { cafeId: string }) => void;
   'typing:stop': (data: { cafeId: string }) => void;
   'presence:update': (data: { inCafe: boolean; cafeId?: string }) => void;
+  'agent:mention': (data: { agentUsername: string; message: string; cafeId: string }) => void;
+  'agent:list': (data: { cafeId: string }) => void;
 }
 
 export interface ServerToClientEvents {
@@ -169,6 +246,12 @@ export interface ServerToClientEvents {
   'topics:update': (data: { topics: { word: string; count: number }[] }) => void;
   'error': (data: { message: string; code?: string }) => void;
   'connected': (data: { userId: string; cafeId?: string }) => void;
+  'agent:typing': (data: { agentName: string; agentUsername: string; cafeId: string; isTyping: boolean }) => void;
+  'agent:response:start': (data: { agentId: string; messageId: string; cafeId: string }) => void;
+  'agent:response:chunk': (data: { messageId: string; chunk: string; cafeId: string }) => void;
+  'agent:response:complete': (data: { messageId: string; fullMessage: string; cafeId: string }) => void;
+  'agents:list': (data: { agents: ChatAgent[] }) => void;
+  'agent:rate_limit': (data: { message: string; resetAt: Date; secondsUntilReset: number }) => void;
 }
 
 export interface InterServerEvents {

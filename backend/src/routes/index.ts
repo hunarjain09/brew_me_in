@@ -4,6 +4,7 @@ import userRoutes from './userRoutes';
 import badgeRoutes from './badgeRoutes';
 import locationRoutes from './locationRoutes';
 import chatRoutes from './chatRoutes';
+import chatAgentRoutes from './chat-agent.routes';
 import rateLimitRoutes from './rateLimitRoutes';
 import matchingRoutes from './matching.routes';
 import pokeRoutes from './poke.routes';
@@ -19,6 +20,7 @@ router.use('/badges', badgeRoutes);
 
 // Component 2: Real-time Chat
 router.use('/chat', chatRoutes);
+router.use('/chat-agent', chatAgentRoutes);
 
 // Component 3: Rate Limiting & Spam Prevention
 router.use('/v1', rateLimitRoutes);

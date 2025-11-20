@@ -13,6 +13,8 @@ import { redisClient } from '../db/redis';
 import { MessageModel } from '../models/Message';
 import { config } from '../config';
 import { CafeModel } from '../models/Cafe';
+import agentMessageRouter from '../services/agent-message-router.service';
+import { MessageParserService } from '../services/message-parser.service';
 
 export class ChatHandler {
   private io: Server<ClientToServerEvents, ServerToClientEvents, InterServerEvents, SocketData>;
@@ -30,6 +32,9 @@ export class ChatHandler {
 
     this.setupMiddleware();
     this.setupEventHandlers();
+
+    // Initialize agent message router with socket.io instance
+    agentMessageRouter.initialize(this.io);
   }
 
   private setupMiddleware() {
@@ -69,6 +74,8 @@ export class ChatHandler {
       this.handleSendMessage(socket);
       this.handleTyping(socket);
       this.handlePresenceUpdate(socket);
+      this.handleAgentList(socket);
+      this.handleAgentMention(socket);
       this.handleDisconnect(socket);
     });
   }
@@ -255,6 +262,15 @@ export class ChatHandler {
         // Broadcast to all users in cafe
         this.io.to(cafeId).emit('message:new', message);
 
+        // Check for agent mentions and route to agent
+        const parsedMessage = MessageParserService.parseMentions(content);
+        if (parsedMessage.hasAgentMention) {
+          // Route message to agent (async, don't await)
+          agentMessageRouter.routeMessage(message, socket.data.userId).catch((error) => {
+            console.error('Error routing message to agent:', error);
+          });
+        }
+
         // Periodically send updated topics (every 10th message)
         const messageCount = await MessageModel.getRecentCount(cafeId, 5);
         if (messageCount % 10 === 0) {
@@ -302,6 +318,54 @@ export class ChatHandler {
           total: userCount,
           inCafe: userCount,
         });
+      }
+    });
+  }
+
+  private handleAgentList(socket: Socket<ClientToServerEvents, ServerToClientEvents, InterServerEvents, SocketData>) {
+    socket.on('agent:list', async (data) => {
+      try {
+        const { cafeId } = data;
+        const agents = await agentMessageRouter.getActiveAgents(cafeId);
+
+        socket.emit('agents:list', { agents });
+      } catch (error) {
+        console.error('Error getting agent list:', error);
+        socket.emit('error', { message: 'Failed to get agents', code: 'AGENT_LIST_ERROR' });
+      }
+    });
+  }
+
+  private handleAgentMention(socket: Socket<ClientToServerEvents, ServerToClientEvents, InterServerEvents, SocketData>) {
+    socket.on('agent:mention', async (data) => {
+      try {
+        const { agentUsername, message: messageContent, cafeId } = data;
+
+        if (!messageContent || messageContent.trim().length === 0) {
+          socket.emit('error', { message: 'Message cannot be empty', code: 'EMPTY_MESSAGE' });
+          return;
+        }
+
+        // Create message with agent mention
+        const message = await MessageModel.create({
+          userId: socket.data.userId,
+          username: socket.data.username,
+          cafeId,
+          content: `@${agentUsername} ${messageContent}`.trim(),
+          messageType: 'user',
+          mentionedAgents: [agentUsername],
+        });
+
+        // Broadcast to cafe
+        this.io.to(cafeId).emit('message:new', message);
+
+        // Route to agent
+        await agentMessageRouter.routeMessage(message, socket.data.userId);
+
+        console.log(`🤖 Agent ${agentUsername} mentioned by ${socket.data.username}`);
+      } catch (error) {
+        console.error('Error handling agent mention:', error);
+        socket.emit('error', { message: 'Failed to mention agent', code: 'AGENT_MENTION_ERROR' });
       }
     });
   }
