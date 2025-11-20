@@ -1,11 +1,13 @@
 import { Router } from 'express';
 import { ChatController } from '../controllers/chatController';
 import { authenticate } from '../middleware/auth';
+import { enforceWifiConnection } from '../middleware/wifiValidation';
 
 const router = Router();
 
-// All chat routes require authentication
+// All chat routes require authentication and WiFi connection
 router.use(authenticate);
+router.use(enforceWifiConnection);
 
 // GET /api/chat/messages/:cafeId
 router.get('/messages/:cafeId', ChatController.getMessages);

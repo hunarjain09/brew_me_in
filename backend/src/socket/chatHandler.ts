@@ -13,6 +13,7 @@ import { redisClient } from '../db/redis';
 import { MessageModel } from '../models/Message';
 import { config } from '../config';
 import { CafeModel } from '../models/Cafe';
+import { NetworkValidator } from '../utils/networkValidation';
 
 export class ChatHandler {
   private io: Server<ClientToServerEvents, ServerToClientEvents, InterServerEvents, SocketData>;
@@ -33,8 +34,8 @@ export class ChatHandler {
   }
 
   private setupMiddleware() {
-    // Authentication middleware
-    this.io.use((socket, next) => {
+    // Authentication and WiFi validation middleware
+    this.io.use(async (socket, next) => {
       const token = socket.handshake.auth.token;
 
       if (!token) {
@@ -48,9 +49,36 @@ export class ChatHandler {
         socket.data.username = decoded.username;
         socket.data.cafeId = decoded.cafeId;
 
+        // WiFi validation - extract location data from handshake
+        const wifiSsid = socket.handshake.auth.wifiSsid as string | undefined;
+        const latitude = socket.handshake.auth.latitude as number | undefined;
+        const longitude = socket.handshake.auth.longitude as number | undefined;
+
+        // Validate user location
+        const validation = await NetworkValidator.validateUserLocation({
+          cafeId: decoded.cafeId,
+          wifiSsid,
+          latitude,
+          longitude,
+        });
+
+        if (!validation.valid) {
+          return next(new Error(`Location validation failed: ${validation.message || 'You must be connected to the cafe WiFi'}`));
+        }
+
+        // Store validation info in socket data
+        socket.data.locationValidation = {
+          method: validation.method,
+          validatedAt: new Date().toISOString(),
+        };
+
         next();
       } catch (error) {
-        next(new Error('Invalid token'));
+        if (error instanceof Error && error.message.includes('Location validation')) {
+          next(error);
+        } else {
+          next(new Error('Invalid token'));
+        }
       }
     });
   }

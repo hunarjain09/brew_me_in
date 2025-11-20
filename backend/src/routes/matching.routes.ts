@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import matchingService from '../services/matching.service';
 import { authenticate } from '../middleware/auth';
+import { enforceWifiConnection } from '../middleware/wifiValidation';
 
 const router = Router();
 
@@ -9,7 +10,7 @@ const router = Router();
  * Discover users with shared interests
  * Query params: cafeId, interests (comma-separated), limit, offset
  */
-router.get('/discover', authenticate, async (req: Request, res: Response) => {
+router.get('/discover', authenticate, enforceWifiConnection, async (req: Request, res: Response) => {
   try {
     const { cafeId, interests, limit, offset } = req.query;
 
@@ -49,7 +50,7 @@ router.get('/discover', authenticate, async (req: Request, res: Response) => {
  * GET /api/matching/interests
  * Get current user's interests
  */
-router.get('/interests', authenticate, async (req: Request, res: Response) => {
+router.get('/interests', authenticate, enforceWifiConnection, async (req: Request, res: Response) => {
   try {
     const interests = await matchingService.getUserInterests(req.user!.userId);
 
@@ -71,7 +72,7 @@ router.get('/interests', authenticate, async (req: Request, res: Response) => {
  * Set user's interests (replaces existing)
  * Body: { interests: string[] }
  */
-router.post('/interests', authenticate, async (req: Request, res: Response) => {
+router.post('/interests', authenticate, enforceWifiConnection, async (req: Request, res: Response) => {
   try {
     const { interests } = req.body;
 
@@ -102,7 +103,7 @@ router.post('/interests', authenticate, async (req: Request, res: Response) => {
  * Add a single interest
  * Body: { interest: string }
  */
-router.post('/interests/add', authenticate, async (req: Request, res: Response) => {
+router.post('/interests/add', authenticate, enforceWifiConnection, async (req: Request, res: Response) => {
   try {
     const { interest } = req.body;
 
@@ -133,7 +134,7 @@ router.post('/interests/add', authenticate, async (req: Request, res: Response) 
  * Remove a single interest
  * Body: { interest: string }
  */
-router.post('/interests/remove', authenticate, async (req: Request, res: Response) => {
+router.post('/interests/remove', authenticate, enforceWifiConnection, async (req: Request, res: Response) => {
   try {
     const { interest } = req.body;
 

@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import agentController from '../controllers/agent.controller';
-import { authenticateToken } from '../middleware/auth';
+import { authenticate, authenticateToken } from '../middleware/auth';
+import { enforceWifiConnection } from '../middleware/wifiValidation';
 
 /**
  * Agent Routes
@@ -9,8 +10,8 @@ import { authenticateToken } from '../middleware/auth';
 
 const router = Router();
 
-// Query endpoints (public - authenticated users)
-router.post('/query', (req, res) => agentController.queryAgent(req, res));
+// Query endpoints (authenticated users - requires WiFi)
+router.post('/query', authenticate, enforceWifiConnection, (req, res) => agentController.queryAgent(req, res));
 
 // Configuration endpoints (protected - moderators only)
 router.get('/config/:cafeId', (req, res) => agentController.getConfig(req, res));

@@ -1,7 +1,11 @@
 import { Server, Socket } from 'socket.io';
+import jwt from 'jsonwebtoken';
 import claudeAgentService from '../services/claude-agent.service';
 import redisCacheService from '../services/redis-cache.service';
 import { AgentConfig, CafeContext } from '../types/agent.types';
+import { JWTPayload } from '../types';
+import { config } from '../config';
+import { NetworkValidator } from '../utils/networkValidation';
 
 /**
  * Agent Socket Handler
@@ -51,8 +55,56 @@ export function initializeAgentSocket(io: Server): void {
   // Create a namespace for agent operations
   const agentNamespace = io.of('/agent');
 
+  // Authentication and WiFi validation middleware
+  agentNamespace.use(async (socket, next) => {
+    const token = socket.handshake.auth.token;
+
+    if (!token) {
+      return next(new Error('Authentication required'));
+    }
+
+    try {
+      const decoded = jwt.verify(token, config.jwtSecret) as JWTPayload;
+
+      socket.data.userId = decoded.userId;
+      socket.data.username = decoded.username;
+      socket.data.cafeId = decoded.cafeId;
+
+      // WiFi validation - extract location data from handshake
+      const wifiSsid = socket.handshake.auth.wifiSsid as string | undefined;
+      const latitude = socket.handshake.auth.latitude as number | undefined;
+      const longitude = socket.handshake.auth.longitude as number | undefined;
+
+      // Validate user location
+      const validation = await NetworkValidator.validateUserLocation({
+        cafeId: decoded.cafeId,
+        wifiSsid,
+        latitude,
+        longitude,
+      });
+
+      if (!validation.valid) {
+        return next(new Error(`Location validation failed: ${validation.message || 'You must be connected to the cafe WiFi'}`));
+      }
+
+      // Store validation info in socket data
+      socket.data.locationValidation = {
+        method: validation.method,
+        validatedAt: new Date().toISOString(),
+      };
+
+      next();
+    } catch (error) {
+      if (error instanceof Error && error.message.includes('Location validation')) {
+        next(error);
+      } else {
+        next(new Error('Invalid token'));
+      }
+    }
+  });
+
   agentNamespace.on('connection', (socket: Socket) => {
-    console.log(`Agent client connected: ${socket.id}`);
+    console.log(`Agent client connected: ${socket.data.username} (${socket.id})`);
 
     // Handle streaming query
     socket.on('query:stream', async (data: {

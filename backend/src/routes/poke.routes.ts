@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import pokeService from '../services/poke.service';
 import { authenticate } from '../middleware/auth';
+import { enforceWifiConnection } from '../middleware/wifiValidation';
 import { pokeRateLimit } from '../middleware/pokeRateLimit';
 
 const router = Router();
@@ -10,7 +11,7 @@ const router = Router();
  * Send a poke to another user
  * Body: { toUserId: string, sharedInterest: string }
  */
-router.post('/send', authenticate, pokeRateLimit, async (req: Request, res: Response) => {
+router.post('/send', authenticate, enforceWifiConnection, pokeRateLimit, async (req: Request, res: Response) => {
   try {
     const { toUserId, sharedInterest } = req.body;
 
@@ -61,7 +62,7 @@ router.post('/send', authenticate, pokeRateLimit, async (req: Request, res: Resp
  * Respond to a poke (accept or decline)
  * Body: { pokeId: string, action: 'accept' | 'decline' }
  */
-router.post('/respond', authenticate, async (req: Request, res: Response) => {
+router.post('/respond', authenticate, enforceWifiConnection, async (req: Request, res: Response) => {
   try {
     const { pokeId, action } = req.body;
 
@@ -126,7 +127,7 @@ router.post('/respond', authenticate, async (req: Request, res: Response) => {
  * GET /api/pokes/pending
  * Get pending incoming pokes
  */
-router.get('/pending', authenticate, async (req: Request, res: Response) => {
+router.get('/pending', authenticate, enforceWifiConnection, async (req: Request, res: Response) => {
   try {
     const pokes = await pokeService.getPendingPokes(req.user!.userId);
 
@@ -148,7 +149,7 @@ router.get('/pending', authenticate, async (req: Request, res: Response) => {
  * GET /api/pokes/sent
  * Get sent outgoing pokes
  */
-router.get('/sent', authenticate, async (req: Request, res: Response) => {
+router.get('/sent', authenticate, enforceWifiConnection, async (req: Request, res: Response) => {
   try {
     const pokes = await pokeService.getSentPokes(req.user!.userId);
 

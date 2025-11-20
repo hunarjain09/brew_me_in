@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { BadgeController } from '../controllers/badgeController';
 import { authenticate } from '../middleware/auth';
+import { enforceWifiConnection } from '../middleware/wifiValidation';
 import { validate, schemas } from '../middleware/validation';
 import { tipRateLimiter } from '../middleware/rateLimit';
 
@@ -15,6 +16,6 @@ router.post(
 );
 
 // GET /api/badges/status
-router.get('/status', authenticate, BadgeController.getBadgeStatus);
+router.get('/status', authenticate, enforceWifiConnection, BadgeController.getBadgeStatus);
 
 export default router;

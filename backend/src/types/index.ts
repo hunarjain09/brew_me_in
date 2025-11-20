@@ -151,6 +151,10 @@ export interface SocketData {
   userId: string;
   username: string;
   cafeId?: string;
+  locationValidation?: {
+    method: 'wifi' | 'geofence' | 'none';
+    validatedAt: string;
+  };
 }
 
 export interface ClientToServerEvents {

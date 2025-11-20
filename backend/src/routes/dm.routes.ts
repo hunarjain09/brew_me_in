@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import dmService from '../services/dm.service';
 import { authenticate } from '../middleware/auth';
+import { enforceWifiConnection } from '../middleware/wifiValidation';
 
 const router = Router();
 
@@ -8,7 +9,7 @@ const router = Router();
  * GET /api/dm/channels
  * Get all DM channels for the current user
  */
-router.get('/channels', authenticate, async (req: Request, res: Response) => {
+router.get('/channels', authenticate, enforceWifiConnection, async (req: Request, res: Response) => {
   try {
     const channels = await dmService.getUserChannels(req.user!.userId);
 
@@ -31,7 +32,7 @@ router.get('/channels', authenticate, async (req: Request, res: Response) => {
  * Get messages from a specific DM channel
  * Query params: limit, offset
  */
-router.get('/:channelId/messages', authenticate, async (req: Request, res: Response) => {
+router.get('/:channelId/messages', authenticate, enforceWifiConnection, async (req: Request, res: Response) => {
   try {
     const { channelId } = req.params;
     const { limit, offset } = req.query;
@@ -70,7 +71,7 @@ router.get('/:channelId/messages', authenticate, async (req: Request, res: Respo
  * Send a message in a DM channel
  * Body: { content: string }
  */
-router.post('/:channelId/messages', authenticate, async (req: Request, res: Response) => {
+router.post('/:channelId/messages', authenticate, enforceWifiConnection, async (req: Request, res: Response) => {
   try {
     const { channelId } = req.params;
     const { content } = req.body;
@@ -117,7 +118,7 @@ router.post('/:channelId/messages', authenticate, async (req: Request, res: Resp
  * DELETE /api/dm/messages/:messageId
  * Delete a message
  */
-router.delete('/messages/:messageId', authenticate, async (req: Request, res: Response) => {
+router.delete('/messages/:messageId', authenticate, enforceWifiConnection, async (req: Request, res: Response) => {
   try {
     const { messageId } = req.params;
 

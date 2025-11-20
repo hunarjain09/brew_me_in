@@ -1,12 +1,14 @@
 import { Router } from 'express';
 import { UserController } from '../controllers/userController';
 import { authenticate } from '../middleware/auth';
+import { enforceWifiConnection } from '../middleware/wifiValidation';
 import { validate, schemas } from '../middleware/validation';
 
 const router = Router();
 
-// All user routes require authentication
+// All user routes require authentication and WiFi connection
 router.use(authenticate);
+router.use(enforceWifiConnection);
 
 // GET /api/users/me
 router.get('/me', UserController.getCurrentUser);

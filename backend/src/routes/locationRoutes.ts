@@ -7,6 +7,7 @@ import {
   getUsersInCafe,
 } from '../controllers/locationController';
 import { authenticate } from '../middleware/auth';
+import { enforceWifiConnection } from '../middleware/wifiValidation';
 
 const router = Router();
 
@@ -15,10 +16,10 @@ const router = Router();
  */
 
 // POST /api/location/validate - Validate cafe access
-router.post('/validate', authenticate, validateLocation);
+router.post('/validate', authenticate, enforceWifiConnection, validateLocation);
 
 // PUT /api/location/update - Update user presence
-router.put('/update', authenticate, updatePresence);
+router.put('/update', authenticate, enforceWifiConnection, updatePresence);
 
 // GET /api/location/presence/:userId - Get user presence
 router.get('/presence/:userId', getUserPresence);
